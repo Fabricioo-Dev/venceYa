@@ -24,10 +24,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final _confirmPasswordController = TextEditingController();
   bool _isLoading = false;
   String? _errorMessage;
-  bool _isPasswordVisible =
-      false; // Controla la visibilidad de la contraseña principal
-  bool _isConfirmPasswordVisible =
-      false; // Controla la visibilidad de la confirmación
+  bool _isPasswordVisible = false;
+  bool _isConfirmPasswordVisible = false;
 
   /// Intenta registrar un nuevo usuario con correo electrónico y contraseña.
   Future<void> _signUp() async {
@@ -55,9 +53,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
               lastLogin: DateTime.now(),
             ),
           );
-
-          // <<-- LÓGICA DE CONFIRMACIÓN VISUAL MEJORADA
-          // Oculta el indicador de carga antes de mostrar el diálogo
           if (mounted) setState(() => _isLoading = false);
 
           if (mounted) {
@@ -153,7 +148,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         title: const Text('Crear Cuenta'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.pop(),
+          onPressed: () => context.go('/login'),
         ),
       ),
       body: Center(

@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:venceya/services/auth_service.dart';
 import 'package:venceya/app_router.dart';
-import 'package:venceya/core/theme.dart'; // Importa el tema global de la aplicación
+import 'package:venceya/core/theme.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 class VenceYaApp extends StatelessWidget {
   const VenceYaApp({super.key});
@@ -19,6 +20,15 @@ class VenceYaApp extends StatelessWidget {
       routerConfig: appRouter.router,
       debugShowCheckedModeBanner:
           false, // Oculta la etiqueta "DEBUG" en la esquina
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('es', 'ES'),
+        Locale('es', 'AR'),
+      ],
     );
   }
 }

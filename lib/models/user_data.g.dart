@@ -14,8 +14,6 @@ _$UserDataImpl _$$UserDataImplFromJson(Map<String, dynamic> json) =>
       photoUrl: json['photoUrl'] as String?,
       firstName: json['firstName'] as String?,
       lastName: json['lastName'] as String?,
-      dailyUsageStreak: (json['dailyUsageStreak'] as num?)?.toInt() ?? 0,
-      points: (json['points'] as num?)?.toInt() ?? 0,
       lastLogin: _$JsonConverterFromJson<Timestamp, DateTime>(
           json['lastLogin'], const TimestampConverter().fromJson),
       createdAt: _$JsonConverterFromJson<Timestamp, DateTime>(
@@ -30,8 +28,6 @@ Map<String, dynamic> _$$UserDataImplToJson(_$UserDataImpl instance) =>
       'photoUrl': instance.photoUrl,
       'firstName': instance.firstName,
       'lastName': instance.lastName,
-      'dailyUsageStreak': instance.dailyUsageStreak,
-      'points': instance.points,
       'lastLogin': _$JsonConverterToJson<Timestamp, DateTime>(
           instance.lastLogin, const TimestampConverter().toJson),
       'createdAt': _$JsonConverterToJson<Timestamp, DateTime>(

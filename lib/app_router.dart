@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:venceya/ui/screens/splash_screen.dart';
 import 'package:venceya/ui/screens/login_screen.dart';
 import 'package:venceya/ui/screens/signup_screen.dart';
-import 'package:venceya/ui/screens/reset_password_screen.dart';
 import 'package:venceya/services/auth_service.dart';
 import 'dart:async';
 
@@ -22,8 +21,10 @@ class AppRouter {
 
   late final GoRouter router = GoRouter(
     initialLocation: '/splash',
-    debugLogDiagnostics: true,
+    debugLogDiagnostics: true, // Habilita logs para depuración de navegación
+
     routes: <RouteBase>[
+      // Ruta para la Splash Screen
       GoRoute(
         path: '/splash',
         name: 'splash',
@@ -31,6 +32,7 @@ class AppRouter {
           return const SplashScreen();
         },
       ),
+      // Ruta para la pantalla de Login
       GoRoute(
         path: '/login',
         name: 'login',
@@ -38,6 +40,7 @@ class AppRouter {
           return const LoginScreen();
         },
       ),
+      // Ruta para la pantalla de registro
       GoRoute(
         path: '/signup',
         name: 'signup',
@@ -45,18 +48,14 @@ class AppRouter {
           return const SignUpScreen();
         },
       ),
-      GoRoute(
-        path: '/reset-password',
-        name: 'resetPassword',
-        builder: (BuildContext context, GoRouterState state) {
-          return const ResetPasswordScreen();
-        },
-      ),
+
+      // ShellRoute para la navegación inferior persistente
       ShellRoute(
         builder: (BuildContext context, GoRouterState state, Widget child) {
           return MainShellScreen(child: child);
         },
-        routes: <RouteBase>[
+        routes: <GoRoute>[
+          // Ruta para el Dashboard
           GoRoute(
             path: '/dashboard',
             name: 'dashboard',
@@ -64,6 +63,7 @@ class AppRouter {
               return const DashboardScreen();
             },
           ),
+          // Ruta para añadir un nuevo recordatorio
           GoRoute(
             path: '/add-reminder',
             name: 'addReminder',
@@ -71,6 +71,7 @@ class AppRouter {
               return const AddEditReminderScreen();
             },
           ),
+          // Ruta para editar un recordatorio existente
           GoRoute(
             path: '/edit-reminder/:id',
             name: 'editReminder',
@@ -79,6 +80,7 @@ class AppRouter {
               return AddEditReminderScreen(reminderId: reminderId);
             },
           ),
+          // Ruta para ver detalles de un recordatorio
           GoRoute(
             path: '/reminder-detail/:id',
             name: 'reminderDetail',
@@ -87,6 +89,7 @@ class AppRouter {
               return ReminderDetailScreen(reminderId: reminderId);
             },
           ),
+          // Ruta para la pantalla de perfil
           GoRoute(
             path: '/profile',
             name: 'profile',
@@ -97,18 +100,17 @@ class AppRouter {
         ],
       ),
     ],
+
+    // Lógica de redirección de la aplicación.
     redirect: (BuildContext context, GoRouterState state) {
       final bool loggedIn = authService.getCurrentUser() != null;
       final bool loggingIn = state.matchedLocation == '/login';
       final bool isSplash = state.matchedLocation == '/splash';
-      final bool isSigningUp =
-          state.matchedLocation == '/signup'; // Ruta de registro
-      final bool isResettingPassword =
-          state.matchedLocation == '/reset-password';
+      final bool isSigningUp = state.matchedLocation == '/signup';
+      // Se elimina la variable isResettingPassword
 
-      // Define las rutas que no requieren autenticación (splash, login, signup, reset-password)
-      final bool isAuthRelatedRoute =
-          isSplash || loggingIn || isSigningUp || isResettingPassword;
+      // Define las rutas que no requieren autenticación (splash, login, signup)
+      final bool isAuthRelatedRoute = isSplash || loggingIn || isSigningUp;
 
       // Si NO está logueado Y NO está en una ruta de autenticación, redirige al login.
       if (!loggedIn && !isAuthRelatedRoute) {
@@ -116,17 +118,11 @@ class AppRouter {
       }
       // Si SÍ está logueado Y está en una ruta de autenticación:
       if (loggedIn && isAuthRelatedRoute) {
-        // <<-- ¡CAMBIO CLAVE AQUÍ! -->>
-        // Si el usuario acaba de registrarse (y está en la pantalla de registro),
-        // NO LO REDIRIJAS aún. Deja que la SignUpScreen muestre su diálogo y navegue a Login.
         if (isSigningUp) {
-          return null; // No redirigir, dejar que SignUpScreen maneje la navegación
+          return null; // Deja que SignUpScreen maneje la navegación
         }
-        // Para otras rutas de autenticación (Login, Splash, Reset Password), si ya está logueado,
-        // entonces sí, redirige al Dashboard.
-        return '/dashboard';
+        return '/dashboard'; // Redirige al Dashboard
       }
-
       return null; // No redirige en otros casos.
     },
     refreshListenable: GoRouterRefreshStream(authService.authStateChanges),

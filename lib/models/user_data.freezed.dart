@@ -21,19 +21,19 @@ UserData _$UserDataFromJson(Map<String, dynamic> json) {
 /// @nodoc
 mixin _$UserData {
   String get uid =>
-      throw _privateConstructorUsedError; // Coincide con el UID de Firebase Auth
+      throw _privateConstructorUsedError; // ID único de Firebase Auth
   String get email => throw _privateConstructorUsedError;
   String? get displayName =>
-      throw _privateConstructorUsedError; // Puede seguir siendo útil para nombres de social login
-  String? get photoUrl => throw _privateConstructorUsedError;
+      throw _privateConstructorUsedError; // Nombre para mostrar (ej. de social login)
+  String? get photoUrl =>
+      throw _privateConstructorUsedError; // URL de la foto de perfil
   String? get firstName =>
-      throw _privateConstructorUsedError; // <<-- ¡NUEVO CAMPO!
+      throw _privateConstructorUsedError; // Nombre del usuario
   String? get lastName =>
-      throw _privateConstructorUsedError; // <<-- ¡NUEVO CAMPO!
-  int get dailyUsageStreak => throw _privateConstructorUsedError;
-  int get points => throw _privateConstructorUsedError;
+      throw _privateConstructorUsedError; // Apellido del usuario
   @TimestampConverter()
-  DateTime? get lastLogin => throw _privateConstructorUsedError;
+  DateTime? get lastLogin =>
+      throw _privateConstructorUsedError; // Último inicio de sesión
   @TimestampConverter()
   DateTime? get createdAt => throw _privateConstructorUsedError;
 
@@ -59,8 +59,6 @@ abstract class $UserDataCopyWith<$Res> {
       String? photoUrl,
       String? firstName,
       String? lastName,
-      int dailyUsageStreak,
-      int points,
       @TimestampConverter() DateTime? lastLogin,
       @TimestampConverter() DateTime? createdAt});
 }
@@ -86,8 +84,6 @@ class _$UserDataCopyWithImpl<$Res, $Val extends UserData>
     Object? photoUrl = freezed,
     Object? firstName = freezed,
     Object? lastName = freezed,
-    Object? dailyUsageStreak = null,
-    Object? points = null,
     Object? lastLogin = freezed,
     Object? createdAt = freezed,
   }) {
@@ -116,14 +112,6 @@ class _$UserDataCopyWithImpl<$Res, $Val extends UserData>
           ? _value.lastName
           : lastName // ignore: cast_nullable_to_non_nullable
               as String?,
-      dailyUsageStreak: null == dailyUsageStreak
-          ? _value.dailyUsageStreak
-          : dailyUsageStreak // ignore: cast_nullable_to_non_nullable
-              as int,
-      points: null == points
-          ? _value.points
-          : points // ignore: cast_nullable_to_non_nullable
-              as int,
       lastLogin: freezed == lastLogin
           ? _value.lastLogin
           : lastLogin // ignore: cast_nullable_to_non_nullable
@@ -151,8 +139,6 @@ abstract class _$$UserDataImplCopyWith<$Res>
       String? photoUrl,
       String? firstName,
       String? lastName,
-      int dailyUsageStreak,
-      int points,
       @TimestampConverter() DateTime? lastLogin,
       @TimestampConverter() DateTime? createdAt});
 }
@@ -176,8 +162,6 @@ class __$$UserDataImplCopyWithImpl<$Res>
     Object? photoUrl = freezed,
     Object? firstName = freezed,
     Object? lastName = freezed,
-    Object? dailyUsageStreak = null,
-    Object? points = null,
     Object? lastLogin = freezed,
     Object? createdAt = freezed,
   }) {
@@ -206,14 +190,6 @@ class __$$UserDataImplCopyWithImpl<$Res>
           ? _value.lastName
           : lastName // ignore: cast_nullable_to_non_nullable
               as String?,
-      dailyUsageStreak: null == dailyUsageStreak
-          ? _value.dailyUsageStreak
-          : dailyUsageStreak // ignore: cast_nullable_to_non_nullable
-              as int,
-      points: null == points
-          ? _value.points
-          : points // ignore: cast_nullable_to_non_nullable
-              as int,
       lastLogin: freezed == lastLogin
           ? _value.lastLogin
           : lastLogin // ignore: cast_nullable_to_non_nullable
@@ -236,8 +212,6 @@ class _$UserDataImpl implements _UserData {
       this.photoUrl,
       this.firstName,
       this.lastName,
-      this.dailyUsageStreak = 0,
-      this.points = 0,
       @TimestampConverter() this.lastLogin,
       @TimestampConverter() this.createdAt});
 
@@ -246,36 +220,32 @@ class _$UserDataImpl implements _UserData {
 
   @override
   final String uid;
-// Coincide con el UID de Firebase Auth
+// ID único de Firebase Auth
   @override
   final String email;
   @override
   final String? displayName;
-// Puede seguir siendo útil para nombres de social login
+// Nombre para mostrar (ej. de social login)
   @override
   final String? photoUrl;
+// URL de la foto de perfil
   @override
   final String? firstName;
-// <<-- ¡NUEVO CAMPO!
+// Nombre del usuario
   @override
   final String? lastName;
-// <<-- ¡NUEVO CAMPO!
-  @override
-  @JsonKey()
-  final int dailyUsageStreak;
-  @override
-  @JsonKey()
-  final int points;
+// Apellido del usuario
   @override
   @TimestampConverter()
   final DateTime? lastLogin;
+// Último inicio de sesión
   @override
   @TimestampConverter()
   final DateTime? createdAt;
 
   @override
   String toString() {
-    return 'UserData(uid: $uid, email: $email, displayName: $displayName, photoUrl: $photoUrl, firstName: $firstName, lastName: $lastName, dailyUsageStreak: $dailyUsageStreak, points: $points, lastLogin: $lastLogin, createdAt: $createdAt)';
+    return 'UserData(uid: $uid, email: $email, displayName: $displayName, photoUrl: $photoUrl, firstName: $firstName, lastName: $lastName, lastLogin: $lastLogin, createdAt: $createdAt)';
   }
 
   @override
@@ -293,9 +263,6 @@ class _$UserDataImpl implements _UserData {
                 other.firstName == firstName) &&
             (identical(other.lastName, lastName) ||
                 other.lastName == lastName) &&
-            (identical(other.dailyUsageStreak, dailyUsageStreak) ||
-                other.dailyUsageStreak == dailyUsageStreak) &&
-            (identical(other.points, points) || other.points == points) &&
             (identical(other.lastLogin, lastLogin) ||
                 other.lastLogin == lastLogin) &&
             (identical(other.createdAt, createdAt) ||
@@ -304,18 +271,8 @@ class _$UserDataImpl implements _UserData {
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(
-      runtimeType,
-      uid,
-      email,
-      displayName,
-      photoUrl,
-      firstName,
-      lastName,
-      dailyUsageStreak,
-      points,
-      lastLogin,
-      createdAt);
+  int get hashCode => Object.hash(runtimeType, uid, email, displayName,
+      photoUrl, firstName, lastName, lastLogin, createdAt);
 
   /// Create a copy of UserData
   /// with the given fields replaced by the non-null parameter values.
@@ -341,8 +298,6 @@ abstract class _UserData implements UserData {
       final String? photoUrl,
       final String? firstName,
       final String? lastName,
-      final int dailyUsageStreak,
-      final int points,
       @TimestampConverter() final DateTime? lastLogin,
       @TimestampConverter() final DateTime? createdAt}) = _$UserDataImpl;
 
@@ -350,25 +305,20 @@ abstract class _UserData implements UserData {
       _$UserDataImpl.fromJson;
 
   @override
-  String get uid; // Coincide con el UID de Firebase Auth
+  String get uid; // ID único de Firebase Auth
   @override
   String get email;
   @override
-  String?
-      get displayName; // Puede seguir siendo útil para nombres de social login
+  String? get displayName; // Nombre para mostrar (ej. de social login)
   @override
-  String? get photoUrl;
+  String? get photoUrl; // URL de la foto de perfil
   @override
-  String? get firstName; // <<-- ¡NUEVO CAMPO!
+  String? get firstName; // Nombre del usuario
   @override
-  String? get lastName; // <<-- ¡NUEVO CAMPO!
-  @override
-  int get dailyUsageStreak;
-  @override
-  int get points;
+  String? get lastName; // Apellido del usuario
   @override
   @TimestampConverter()
-  DateTime? get lastLogin;
+  DateTime? get lastLogin; // Último inicio de sesión
   @override
   @TimestampConverter()
   DateTime? get createdAt;

@@ -2,10 +2,8 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
-  // Paleta de colores basada en tus imágenes y una estética moderna:
-  // Azul principal (botones, fondo splash, elementos activos): Material Indigo 700 o similar
+  
   static const Color primaryBlue = Color(0xFF3F51B5); // RGB: 63, 81, 181
-  // Azul de acento/más claro (para FAB, algunos estados): Material Blue 500 o similar
   static const Color accentBlue =
       Color(0xFF4285F4); // RGB: 66, 133, 244 (Google Blue)
   // Fondo general de las pantallas (gris muy claro, casi blanco)
@@ -19,8 +17,6 @@ class AppTheme {
   // Colores para texto secundario o hints
   static const Color textMedium =
       Color(0xFF757575); // RGB: 117, 117, 117 (Gris medio)
-
-  // Colores de ejemplo para categorías/íconos en tarjetas (puedes ajustar según tu necesidad)
   static const Color categoryOrange = Color(0xFFFF9800); // Naranja (ej: pagos)
   static const Color categoryBlue = Color(0xFF2196F3); // Azul (ej: servicios)
   static const Color categoryGreen =

@@ -4,10 +4,10 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:venceya/services/auth_service.dart';
 import 'package:venceya/models/user_data.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // Para FirebaseAuthException y UserCredential
 import 'package:venceya/services/firestore_service.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:venceya/core/theme.dart'; // Asegúrate de que esta línea esté si no la tienes
+import 'package:cloud_firestore/cloud_firestore.dart'; // Para Timestamp
+import 'package:venceya/core/theme.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -64,17 +64,20 @@ class _LoginScreenState extends State<LoginScreen> {
       final userCredential =
           await context.read<AuthService>().signInWithGoogle();
 
-      if (userCredential?.user != null) {
+      if (userCredential != null && userCredential.user != null) {
+        // Acceso seguro a user
         final firestoreService = context.read<FirestoreService>();
-        final existingUserData =
-            await firestoreService.getUserData(userCredential!.user!.uid);
+        final existingUserData = await firestoreService
+            .getUserData(userCredential.user!.uid); // Acceso seguro a uid
         if (existingUserData == null) {
           await firestoreService.setUserData(
             UserData(
-              uid: userCredential.user!.uid,
-              email: userCredential.user!.email ?? '',
-              displayName: userCredential.user!.displayName,
-              photoUrl: userCredential.user!.photoURL,
+              uid: userCredential.user!.uid, // Acceso seguro a uid
+              email: userCredential.user!.email ?? '', // Acceso seguro a email
+              displayName:
+                  userCredential.user!.displayName, // Propiedad de Firebase SDK
+              photoUrl:
+                  userCredential.user!.photoURL, // Propiedad de Firebase SDK
               createdAt: DateTime.now(),
               lastLogin: DateTime.now(),
             ),
@@ -85,8 +88,10 @@ class _LoginScreenState extends State<LoginScreen> {
         }
       }
     } on FirebaseAuthException catch (e) {
+      // Excepción de Firebase SDK
       setState(() {
-        _errorMessage = "Error con Google Sign-In: ${e.message}";
+        _errorMessage =
+            "Error con Google Sign-In: ${e.message}"; // Mensaje de Firebase SDK
       });
     } catch (e) {
       setState(() {
@@ -129,9 +134,7 @@ class _LoginScreenState extends State<LoginScreen> {
               children: <Widget>[
                 const Text(
                   'Inicia sesión para empezar',
-                  style: TextStyle(
-                      fontSize: 18,
-                      color: AppTheme.textMedium), // Usar color del tema
+                  style: TextStyle(fontSize: 18, color: AppTheme.textMedium),
                 ),
                 const SizedBox(height: 32),
                 TextFormField(
@@ -155,18 +158,17 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _passwordController,
-                  obscureText: !_isPasswordVisible, // Controla la visibilidad
+                  obscureText: !_isPasswordVisible,
                   decoration: InputDecoration(
                     labelText: 'Contraseña',
                     hintText: 'Ingrese su contraseña',
                     prefixIcon: const Icon(Icons.lock_outline),
                     suffixIcon: IconButton(
-                      // Botón para alternar visibilidad
                       icon: Icon(
                         _isPasswordVisible
                             ? Icons.visibility
                             : Icons.visibility_off,
-                        color: AppTheme.textMedium, // Color del ojo
+                        color: AppTheme.textMedium,
                       ),
                       onPressed: () {
                         setState(() {
@@ -186,28 +188,16 @@ class _LoginScreenState extends State<LoginScreen> {
                   },
                 ),
                 const SizedBox(height: 8),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: () {
-                      context.go('/reset-password');
-                    },
-                    child: Text(
-                      'Contraseña olvidada?',
-                      style: TextStyle(
-                          color: primaryBlue, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
+                const SizedBox(
+                    height:
+                        24), // Espacio: botón "Contraseña olvidada?" eliminado.
                 if (_errorMessage != null)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 16.0),
                     child: Text(
                       _errorMessage!,
                       style: const TextStyle(
-                          color: AppTheme.categoryRed,
-                          fontSize: 14), // Usar color del tema
+                          color: AppTheme.categoryRed, fontSize: 14),
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -245,30 +235,25 @@ class _LoginScreenState extends State<LoginScreen> {
                           const Text(
                             'Inicia sesión con',
                             style: TextStyle(
-                                fontSize: 16,
-                                color:
-                                    AppTheme.textMedium), // Usar color del tema
+                                fontSize: 16, color: AppTheme.textMedium),
                           ),
                           const SizedBox(height: 16),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              // Botón de Google Sign-In (Ahora sí, habilitado y con estilo)
                               IconButton(
                                 onPressed: _signInWithGoogle,
                                 icon: Image.asset('assets/google_logo.png',
                                     height: 40),
                                 style: IconButton.styleFrom(
-                                  padding: const EdgeInsets.all(
-                                      8.0), // Añadir padding para hacer el botón más visible
-                                  backgroundColor: Colors.white, // Fondo blanco
+                                  padding: const EdgeInsets.all(8.0),
+                                  backgroundColor: Colors.white,
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(10.0),
                                     side: const BorderSide(
-                                        color: AppTheme
-                                            .inputFillColor), // Borde suave
+                                        color: AppTheme.inputFillColor),
                                   ),
-                                  elevation: 2, // Sombra sutil
+                                  elevation: 2,
                                 ),
                               ),
                             ],
