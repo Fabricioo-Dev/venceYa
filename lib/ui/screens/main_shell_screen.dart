@@ -1,78 +1,98 @@
 // lib/ui/screens/main_shell_screen.dart
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:venceya/core/theme.dart'; // Para colores del tema
 
+// --- DEFINICIÓN DEL WIDGET ---
+// MainShellScreen es la "cáscara" o "plantilla" principal de la aplicación.
+// Es un ejemplo perfecto de un "Widget Estático" (StatelessWidget).
+//
+// ¿Por qué es estático? Porque no necesita "recordar" ningún estado que cambie por sí mismo.
+// Su única misión es:
+// 1. Dibujar una estructura fija (el Scaffold con la barra de navegación inferior).
+// 2. Mostrar en su cuerpo (`body`) la pantalla que GoRouter le ordene (`child`).
+//
+// Este widget se reconstruye cuando GoRouter le pasa un `child` diferente, pero no usa `setState()`.
 class MainShellScreen extends StatelessWidget {
-  final Widget
-      child; // El widget 'child' es la pantalla actual dentro del ShellRoute
+  /// El widget 'child' es la pantalla actual que GoRouter inyecta aquí.
+  /// Puede ser DashboardScreen, ProfileScreen, etc., dependiendo de la ruta.
+  final Widget child;
 
-  const MainShellScreen({super.key, required this.child});
+  const MainShellScreen({
+    super.key,
+    required this.child,
+  });
+
+  /// Método privado para determinar qué ítem de la barra de navegación resaltar.
+  /// Mantenemos esta lógica fuera del método `build` para que sea más limpio.
+  int _getSelectedIndex(BuildContext context) {
+    // Obtenemos la ruta actual usando GoRouterState. Es la forma moderna y limpia.
+    final String location = GoRouterState.of(context).uri.toString();
+
+    // Comprobamos con qué ruta empieza la ubicación actual.
+    if (location.startsWith('/dashboard')) {
+      return 0; // Índice 0 es 'Inicio'
+    }
+    if (location.startsWith('/add-reminder')) {
+      return 1; // Índice 1 es 'Nuevo'
+    }
+    if (location.startsWith('/profile')) {
+      return 2; // Índice 2 es 'Perfil'
+    }
+    // Caso por defecto: si estamos en una pantalla que no está en la barra
+    // (ej. /reminders/detail/123), dejamos resaltado 'Inicio'.
+    return 0;
+  }
+
+  /// Método privado que se ejecuta cuando el usuario toca un ítem de la barra.
+  void _onItemTapped(int index, BuildContext context) {
+    // Usamos una declaración 'switch' que es ideal para manejar casos basados en un índice.
+    switch (index) {
+      case 0: // Si el usuario toca el ítem en el índice 0...
+        context.go('/dashboard'); // ...navegamos a la ruta '/dashboard'.
+        break;
+      case 1:
+        context.go('/add-reminder');
+        break;
+      case 2:
+        context.go('/profile');
+        break;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Obtener la ruta actual para saber qué ítem de la barra de navegación resaltar
-    final String location =
-        GoRouter.of(context).routerDelegate.currentConfiguration.uri.toString();
-
-    // Determina el índice de la pestaña activa basado en la ruta actual
-    int getSelectedIndex(String location) {
-      if (location.startsWith('/dashboard')) {
-        return 0; // 'Inicio'
-      }
-      if (location.startsWith('/add-reminder')) {
-        return 1; // 'Nuevo'
-      }
-      if (location.startsWith('/profile')) {
-        return 2; // 'Perfil'
-      }
-      // Si hay otras rutas no manejadas por la barra (ej. detalle, editar),
-      // puedes devolver un índice que no se resalte o manejar un default.
-      return 0; // Por defecto a Inicio
-    }
-
-    int selectedIndex = getSelectedIndex(location);
-
     return Scaffold(
-      body:
-          child, // Aquí se mostrará la pantalla hija actual del ShellRoute (Dashboard, Add, Profile)
+      // El cuerpo del Scaffold es simplemente el widget 'child' que nos pasa GoRouter.
+      // Aquí es donde ocurre la "magia" del ShellRoute, mostrando la pantalla correcta.
+      body: child,
+
+      // La barra de navegación persistente en la parte inferior.
       bottomNavigationBar: BottomNavigationBar(
+        // La lista de ítems (botones/pestañas) que se mostrarán en la barra.
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
+            icon: Icon(Icons.home_outlined), // Ícono normal
+            activeIcon: Icon(Icons.home), // Ícono cuando la pestaña está activa
             label: 'Inicio',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.add_circle_outline),
+            activeIcon: Icon(Icons.add_circle),
             label: 'Nuevo',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),
+            activeIcon: Icon(Icons.person),
             label: 'Perfil',
           ),
-          // Eliminamos el ítem "Archivo" como solicitaste
-          // BottomNavigationBarItem(
-          //   icon: Icon(Icons.archive_outlined),
-          //   label: 'Archivo',
-          // ),
         ],
-        currentIndex: selectedIndex, // Resalta el ítem basado en la ruta actual
-        onTap: (index) {
-          // Navegación dentro del ShellRoute
-          if (index == 0) {
-            // Inicio -> Dashboard
-            context.go(
-                '/dashboard'); // Usamos go para ir a la ruta principal del Dashboard
-          } else if (index == 1) {
-            // Nuevo -> Añadir Recordatorio
-            context
-                .go('/add-reminder'); // Usamos go para ir a la ruta de añadir
-          } else if (index == 2) {
-            // Perfil -> Pantalla de Perfil
-            context.go('/profile'); // Usamos go para ir a la ruta de perfil
-          }
-          // El ítem "Archivo" ha sido eliminado
-        },
+        // 'currentIndex' le dice a la barra qué ítem debe resaltar.
+        // Llamamos a nuestro método ayudante para que lo calcule por nosotros.
+        currentIndex: _getSelectedIndex(context),
+
+        // 'onTap' es la función que se ejecuta cuando el usuario toca un ítem.
+        // Recibe el 'index' del ítem que fue presionado.
+        onTap: (index) => _onItemTapped(index, context),
       ),
     );
   }

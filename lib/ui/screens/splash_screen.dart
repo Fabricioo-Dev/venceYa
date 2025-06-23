@@ -5,6 +5,9 @@ import 'package:provider/provider.dart';
 import 'package:venceya/services/auth_service.dart';
 import 'package:venceya/core/theme.dart';
 
+/// Pantalla de bienvenida que se muestra al iniciar la aplicación.
+/// Su principal función es decidir a qué pantalla redirigir al usuario
+/// basándose en su estado de autenticación.
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -13,60 +16,62 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
+  /// El método `initState` se ejecuta una sola vez cuando el widget se crea.
+  /// Es el lugar ideal para iniciar procesos que solo deben correr una vez.
   @override
   void initState() {
     super.initState();
-    _checkAuthAndNavigate(); // Inicia el proceso de verificación y navegación al cargar la pantalla.
+    // Inicia el proceso de verificación y navegación.
+    _checkAuthAndNavigate();
   }
 
-  /// Verifica el estado de autenticación del usuario y navega a la pantalla correspondiente.
-  /// Espera un tiempo definido para mostrar el logo y el indicador de carga.
+  /// Verifica si el usuario ya ha iniciado sesión y navega a la pantalla correcta.
   Future<void> _checkAuthAndNavigate() async {
-    // Espera un breve tiempo para mostrar el logo (3 segundos). Ajusta si es necesario.
+    // Usamos `Future.delayed` para que la pantalla de bienvenida sea visible
+    // por un tiempo determinado (3 segundos), dando tiempo a que la app
+    // inicialice sus servicios en segundo plano.
     await Future.delayed(const Duration(seconds: 3));
 
-    // Asegúrate de que el widget sigue montado en el árbol antes de intentar navegar.
+    // Es crucial comprobar si el widget sigue "montado" (en pantalla) antes de
+    // usar su `context` para navegar, especialmente después de un `await`.
+    // Esto previene errores si el usuario cierra la app durante la espera.
     if (!mounted) return;
 
-    // Obtiene una instancia del AuthService sin escuchar cambios (listen: false)
-    // porque solo necesitamos el estado actual para la decisión de navegación.
+    // Usamos Provider para obtener acceso al AuthService de forma segura.
     final authService = Provider.of<AuthService>(context, listen: false);
 
-    // Si hay un usuario actualmente autenticado, navega al dashboard.
+    // Comprueba si hay un usuario logueado.
     if (authService.getCurrentUser() != null) {
+      // Si hay un usuario, lo redirige al dashboard principal.
       context.go('/dashboard');
     } else {
-      // Si no hay un usuario autenticado, navega a la pantalla de login.
+      // Si no hay usuario, lo redirige a la pantalla de login.
       context.go('/login');
     }
   }
 
+  /// Construye la interfaz de usuario de la pantalla de bienvenida.
   @override
   Widget build(BuildContext context) {
-    // Usamos el color primaryBlue definido en AppTheme para consistencia.
-    // Ya no usamos 'const Color primaryBlue = Color(0xFF3F51B5);' directamente aquí.
-
     return Scaffold(
-      backgroundColor: AppTheme.primaryBlue, // <--- ¡Usamos el color del tema!
+      backgroundColor:
+          AppTheme.primaryBlue, // Fondo con el color principal de la app.
       body: Center(
         child: Column(
           mainAxisAlignment:
               MainAxisAlignment.center, // Centra los elementos verticalmente.
           children: <Widget>[
-            // Muestra el logo de VenceYa. La imagen PNG ya incluye el reloj, calendario y texto.
+            // Muestra el logo de la aplicación desde la carpeta de assets.
             Image.asset(
-              'assets/venceya_logo.png', // Ruta del asset del logo.
-              width: 300, // Ancho deseado para el logo.
-              height:
-                  300, // Alto deseado para el logo. Ajusta según sea necesario.
+              'assets/venceya_logo.png',
+              width: 380,
             ),
-            const SizedBox(
-                height:
-                    50), // Espacio vertical entre el logo y el indicador de carga.
+            const SizedBox(height: 18),
+
+            // Muestra un indicador de carga circular para dar feedback de que algo está pasando.
             const CircularProgressIndicator(
-              // Muestra un indicador de carga.
-              valueColor: AlwaysStoppedAnimation<Color>(
-                  Colors.white), // Color del indicador blanco.
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              strokeWidth: 3,
             ),
           ],
         ),

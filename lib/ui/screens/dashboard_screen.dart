@@ -2,14 +2,16 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // Importante para acceder a los metadatos del usuario
 import 'package:venceya/models/reminder.dart';
-import 'package:venceya/models/user_data.dart';
 import 'package:venceya/services/auth_service.dart';
 import 'package:venceya/services/firestore_service.dart';
 import 'package:venceya/core/theme.dart';
 import 'package:intl/intl.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
+// --- DEFINICIÓN DEL WIDGET ---
+// DashboardScreen es un "Widget Dinámico" (StatefulWidget) porque necesita
+// manejar un `TabController` para las pestañas, el cual debe ser creado y destruido.
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
 
@@ -19,61 +21,107 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen>
     with SingleTickerProviderStateMixin {
-  UserData? _userData;
   late TabController _tabController;
 
+  // --- CICLO DE VIDA ---
+
+  // `initState` se ejecuta una sola vez cuando el widget se crea.
   @override
   void initState() {
     super.initState();
+    // Inicializa el controlador de pestañas.
     _tabController = TabController(length: 3, vsync: this);
-    _loadUserData();
+    // Actualiza la fecha del último login.
+    _updateLastLogin();
+    // Revisa si el usuario es nuevo para mostrar el mensaje de bienvenida.
+    _checkIfNewUserAndShowMessage();
   }
 
+  // `dispose` se ejecuta cuando el widget se destruye para liberar recursos.
   @override
   void dispose() {
     _tabController.dispose();
     super.dispose();
   }
 
-  /// Carga los datos del perfil del usuario desde Firestore.
-  Future<void> _loadUserData() async {
-    final authService = context.read<AuthService>();
-    final firestoreService =
-        Provider.of<FirestoreService>(context, listen: false);
-    final currentUser = authService.getCurrentUser();
+  // --- LÓGICA DE LA PANTALLA ---
 
-    if (currentUser != null) {
-      UserData? fetchedUserData =
-          await firestoreService.getUserData(currentUser.uid);
+  /// Revisa si el usuario actual acaba de ser creado y muestra un mensaje de bienvenida.
+  void _checkIfNewUserAndShowMessage() {
+    // Obtenemos el usuario actual directamente de FirebaseAuth.
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
 
-      if (fetchedUserData != null) {
-        setState(() {
-          _userData = fetchedUserData;
-        });
-        await firestoreService.updateUserData(
-            currentUser.uid, {'lastLogin': Timestamp.fromDate(DateTime.now())});
-      }
+    // `user.metadata.creationTime` nos da la fecha y hora exactas de creación de la cuenta.
+    final creationTime = user.metadata.creationTime;
+
+    // Si la cuenta se creó hace menos de 5 segundos, asumimos que es un nuevo registro.
+    // Esta es la forma más simple y robusta de saber si el usuario acaba de llegar desde la pantalla de registro.
+    if (creationTime != null &&
+        DateTime.now().difference(creationTime).inSeconds < 5) {
+      // Usamos `addPostFrameCallback` para mostrar el SnackBar de forma segura
+      // después de que la pantalla se haya dibujado por completo.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Row(
+                children: [
+                  Icon(Icons.check_circle, color: Colors.white),
+                  SizedBox(width: 8),
+                  Text("¡Cuenta creada con éxito!"),
+                ],
+              ),
+              backgroundColor: AppTheme.categoryGreen,
+            ),
+          );
+        }
+      });
     }
   }
 
-  /// Construye la lista de recordatorios.
-  Widget _buildReminderList(List<Reminder> reminders, BuildContext context) {
+  /// Actualiza la fecha del último inicio de sesión del usuario en Firestore.
+  Future<void> _updateLastLogin() async {
+    final authService = context.read<AuthService>();
+    final firestoreService = context.read<FirestoreService>();
+    final currentUser = authService.getCurrentUser();
+
+    if (currentUser != null) {
+      await firestoreService
+          .updateUserData(currentUser.uid, {'lastLogin': DateTime.now()});
+    }
+  }
+
+  // --- MÉTODOS AYUDANTES PARA CONSTRUIR LA UI ---
+
+  /// Construye la lista visual de recordatorios.
+  Widget _buildReminderList(List<Reminder> reminders) {
+    if (reminders.isEmpty) {
+      return const Center(
+        child: Text(
+          'No hay recordatorios en esta categoría.',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 16, color: AppTheme.textMedium),
+        ),
+      );
+    }
+
+    // `ListView.builder` es el widget más eficiente para mostrar listas.
     return ListView.builder(
+      padding: const EdgeInsets.all(8.0),
       itemCount: reminders.length,
       itemBuilder: (context, index) {
         final reminder = reminders[index];
+        final bool isOverdue = reminder.dueDate.isBefore(DateTime.now());
+
+        // `Card` y `ListTile` para cada fila de la lista.
         return Card(
+          margin: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
           child: ListTile(
-            leading: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: _getCategoryColor(reminder.category),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(
-                _getCategoryIcon(reminder.category),
-                color: Colors.white,
-              ),
+            leading: CircleAvatar(
+              backgroundColor: _getCategoryColor(reminder.category),
+              child: Icon(_getCategoryIcon(reminder.category),
+                  color: Colors.white),
             ),
             title: Text(
               reminder.title,
@@ -84,20 +132,13 @@ class _DashboardScreenState extends State<DashboardScreen>
               children: [
                 Text(
                   'Vence: ${DateFormat.yMMMd('es').add_jm().format(reminder.dueDate)}',
-                  style: Theme.of(context).textTheme.bodySmall!.copyWith(
-                        color: reminder.dueDate.isBefore(DateTime.now())
-                            ? AppTheme.categoryRed
-                            : AppTheme.textMedium,
-                        fontWeight: FontWeight.bold,
-                      ),
+                  style: TextStyle(
+                    color:
+                        isOverdue ? AppTheme.categoryRed : AppTheme.textMedium,
+                    fontWeight: isOverdue ? FontWeight.bold : FontWeight.normal,
+                  ),
                 ),
-                Text(
-                  'Categoría: ${_getCategoryText(reminder.category)}', // Categoría ahora en español
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodySmall!
-                      .copyWith(color: AppTheme.textMedium),
-                ),
+                Text('Categoría: ${_getCategoryText(reminder.category)}'),
               ],
             ),
             isThreeLine: true,
@@ -129,8 +170,6 @@ class _DashboardScreenState extends State<DashboardScreen>
         return AppTheme.categoryPurple;
       case ReminderCategory.other:
         return AppTheme.categoryLightGrey;
-      default:
-        return AppTheme.categoryLightGrey;
     }
   }
 
@@ -146,8 +185,6 @@ class _DashboardScreenState extends State<DashboardScreen>
       case ReminderCategory.personal:
         return Icons.person_outline;
       case ReminderCategory.other:
-        return Icons.category_outlined;
-      default:
         return Icons.category_outlined;
     }
   }
@@ -165,177 +202,94 @@ class _DashboardScreenState extends State<DashboardScreen>
         return 'Personal';
       case ReminderCategory.other:
         return 'Otro';
-      default:
-        return 'Otro';
     }
   }
 
-  /// Convierte el enum de Frecuencia a texto en español.
-  String _getFrequencyText(ReminderFrequency frequency) {
-    switch (frequency) {
-      case ReminderFrequency.none:
-        return 'Único';
-      case ReminderFrequency.daily:
-        return 'Diario';
-      case ReminderFrequency.weekly:
-        return 'Semanal';
-      case ReminderFrequency.monthly:
-        return 'Mensual';
-      case ReminderFrequency.yearly:
-        return 'Anual';
-      default:
-        return 'Único';
-    }
-  }
-
+  // --- MÉTODO PRINCIPAL DE CONSTRUCCIÓN DE LA UI ---
   @override
   Widget build(BuildContext context) {
-    final authService = Provider.of<AuthService>(context, listen: false);
-    final firestoreService =
-        Provider.of<FirestoreService>(context, listen: false);
+    final authService = context.read<AuthService>();
+    final firestoreService = context.read<FirestoreService>();
     final currentUser = authService.getCurrentUser();
 
+    // `Scaffold` es el esqueleto básico de la pantalla.
     return Scaffold(
       appBar: AppBar(
         title: const Text('Mis Recordatorios'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout, color: AppTheme.textDark),
+            icon: const Icon(Icons.logout),
             tooltip: 'Cerrar Sesión',
             onPressed: () async {
               await authService.signOut();
             },
           ),
         ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(kToolbarHeight),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: TabBar(
-              controller: _tabController,
-              labelColor: AppTheme.primaryBlue,
-              unselectedLabelColor: AppTheme.textMedium,
-              indicatorColor: AppTheme.primaryBlue,
-              labelStyle: Theme.of(context).textTheme.titleMedium,
-              tabs: const [
-                Tab(text: 'Todos'),
-                Tab(text: 'Próximos'),
-                Tab(text: 'Pasados'),
-              ],
-            ),
-          ),
+        // `TabBar` dibuja la barra de pestañas.
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: const [
+            Tab(text: 'Todos'),
+            Tab(text: 'Próximos'),
+            Tab(text: 'Pasados'),
+          ],
         ),
       ),
       body: currentUser == null
           ? const Center(child: Text('Usuario no autenticado. Redirigiendo...'))
-          : TabBarView(
-              controller: _tabController,
-              children: [
-                // Pestaña "Todos"
-                StreamBuilder<List<Reminder>>(
-                  stream: firestoreService.getRemindersStream(currentUser.uid),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-                    if (snapshot.hasError) {
-                      return Center(
-                          child: Text(
-                              'Error al cargar recordatorios: ${snapshot.error}',
-                              style: const TextStyle(
-                                  color: AppTheme.categoryRed)));
-                    }
-                    if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                      return const Center(
-                        child: Text(
-                          'No tienes recordatorios aún. ¡Añade uno!',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                              fontSize: 16, color: AppTheme.textMedium),
-                        ),
-                      );
-                    }
-                    return _buildReminderList(snapshot.data!, context);
-                  },
-                ),
-                // Pestaña "Próximos"
-                StreamBuilder<List<Reminder>>(
-                  stream: firestoreService.getRemindersStream(currentUser.uid),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-                    if (snapshot.hasError) {
-                      return Center(
-                          child: Text(
-                              'Error al cargar recordatorios: ${snapshot.error}',
-                              style: const TextStyle(
-                                  color: AppTheme.categoryRed)));
-                    }
-                    if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                      return const Center(
-                        child: Text(
-                          'No tienes recordatorios próximos. ¡Añade uno!',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                              fontSize: 16, color: AppTheme.textMedium),
-                        ),
-                      );
-                    }
-                    final upcomingReminders = snapshot.data!
-                        .where((r) => !r.dueDate.isBefore(DateTime.now()))
-                        .toList();
-                    if (upcomingReminders.isEmpty) {
-                      return const Center(
-                          child: Text('No tienes recordatorios próximos.'));
-                    }
-                    return _buildReminderList(upcomingReminders, context);
-                  },
-                ),
-                // Pestaña "Pasados"
-                StreamBuilder<List<Reminder>>(
-                  stream: firestoreService.getRemindersStream(currentUser.uid),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-                    if (snapshot.hasError) {
-                      return Center(
-                          child: Text(
-                              'Error al cargar recordatorios: ${snapshot.error}',
-                              style: const TextStyle(
-                                  color: AppTheme.categoryRed)));
-                    }
-                    if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                      return const Center(
-                        child: Text(
-                          'No tienes recordatorios pasados. ¡Añade uno!',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                              fontSize: 16, color: AppTheme.textMedium),
-                        ),
-                      );
-                    }
-                    final pastReminders = snapshot.data!
-                        .where((r) => r.dueDate.isBefore(DateTime.now()))
-                        .toList();
-                    if (pastReminders.isEmpty) {
-                      return const Center(
-                          child: Text('No tienes recordatorios pasados.'));
-                    }
-                    return _buildReminderList(pastReminders, context);
-                  },
-                ),
-              ],
+          // `StreamBuilder` se conecta a Firestore y se actualiza en tiempo real.
+          : StreamBuilder<List<Reminder>>(
+              stream: firestoreService.getRemindersStream(currentUser.uid),
+              builder: (context, snapshot) {
+                // Muestra un cargador mientras espera los datos.
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                // Muestra un error si la conexión falla.
+                if (snapshot.hasError) {
+                  return Center(
+                      child: Text('Error al cargar datos: ${snapshot.error}'));
+                }
+
+                final allReminders = snapshot.data ?? [];
+
+                if (allReminders.isEmpty) {
+                  return const Center(
+                    child: Text(
+                      'No tienes recordatorios aún.\n¡Añade uno con el botón +!',
+                      textAlign: TextAlign.center,
+                      style:
+                          TextStyle(fontSize: 18, color: AppTheme.textMedium),
+                    ),
+                  );
+                }
+
+                // `TabBarView` muestra el contenido de la pestaña activa.
+                return TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _buildReminderList(allReminders), // Pestaña "Todos"
+                    _buildReminderList(// Pestaña "Próximos"
+                        allReminders
+                            .where((r) => !r.dueDate.isBefore(DateTime.now()))
+                            .toList()),
+                    _buildReminderList(// Pestaña "Pasados"
+                        allReminders
+                            .where((r) => r.dueDate.isBefore(DateTime.now()))
+                            .toList()),
+                  ],
+                );
+              },
             ),
+      // `FloatingActionButton` es el botón circular "flotante".
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           context.go('/add-reminder');
         },
-        child: const Icon(Icons.add),
         tooltip: 'Añadir Recordatorio',
+        child: const Icon(Icons.add),
       ),
-      // Se elimina la BottomNavigationBar de aquí, ya que la maneja MainShellScreen
     );
   }
 }

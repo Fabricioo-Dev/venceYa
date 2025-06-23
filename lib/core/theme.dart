@@ -1,216 +1,179 @@
 // lib/core/theme.dart
 import 'package:flutter/material.dart';
 
+/// Clase que centraliza toda la configuración de diseño y estilo de la aplicación.
+/// Tener un tema centralizado asegura una apariencia consistente en todas las pantallas.
 class AppTheme {
-  
-  static const Color primaryBlue = Color(0xFF3F51B5); // RGB: 63, 81, 181
+  // --- PALETA DE COLORES PRINCIPAL ---
+  // Se definen todos los colores de la app como constantes estáticas para poder
+  // reutilizarlos fácilmente en cualquier parte del código.
+  static const Color primaryBlue =
+      Color(0xFF3F51B5); // El azul principal de la marca.
   static const Color accentBlue =
-      Color(0xFF4285F4); // RGB: 66, 133, 244 (Google Blue)
-  // Fondo general de las pantallas (gris muy claro, casi blanco)
-  static const Color backgroundLight = Color(0xFFF5F5F5); // RGB: 245, 245, 245
-  // Fondo de los campos de texto y tarjetas claras
+      Color(0xFF4285F4); // Un azul secundario para acentos y botones.
+
+  // Colores de UI
+  static const Color backgroundLight =
+      Color(0xFFF5F5F5); // Fondo general de las pantallas.
   static const Color inputFillColor =
-      Color(0xFFE0E0E0); // RGB: 224, 224, 224 (Gris claro)
-  // Colores para texto oscuro y títulos
+      Color(0xFFE0E0E0); // Fondo de los campos de texto.
+
+  // Colores de Texto
   static const Color textDark =
-      Color(0xFF212121); // RGB: 33, 33, 33 (Casi negro)
-  // Colores para texto secundario o hints
+      Color(0xFF212121); // Para títulos y texto principal (casi negro).
   static const Color textMedium =
-      Color(0xFF757575); // RGB: 117, 117, 117 (Gris medio)
-  static const Color categoryOrange = Color(0xFFFF9800); // Naranja (ej: pagos)
-  static const Color categoryBlue = Color(0xFF2196F3); // Azul (ej: servicios)
-  static const Color categoryGreen =
-      Color(0xFF4CAF50); // Verde (ej: documentos)
-  static const Color categoryRed =
-      Color(0xFFF44336); // Rojo (ej: alertas o gastos)
-  static const Color categoryPurple =
-      Color(0xFF9C27B0); // Morado (ej: personal)
-  static const Color categoryLightGrey =
-      Color(0xFF9E9E9E); // Gris para "otros" o iconos inactivos
+      Color(0xFF757575); // Para subtítulos o texto secundario.
 
+  // Colores de Categorías
+  static const Color categoryRed = Color(0xFFF44336);
+  static const Color categoryBlue = Color(0xFF2196F3);
+  static const Color categoryGreen = Color(0xFF4CAF50);
+  static const Color categoryPurple = Color(0xFF9C27B0);
+  static const Color categoryLightGrey = Color(0xFF9E9E9E);
+
+  /// El objeto ThemeData que contiene toda la configuración de estilo para el modo claro.
   static final ThemeData lightTheme = ThemeData(
-    brightness: Brightness.light, // Tema claro
-    primaryColor: primaryBlue, // Color principal para AppBar, botones, etc.
-    hintColor:
-        accentBlue, // Color secundario para acentos (ej. FloatingActionButton)
-    scaffoldBackgroundColor:
-        backgroundLight, // Color de fondo predeterminado para Scaffold
+    // Define el brillo general del tema.
+    brightness: Brightness.light,
 
-    // Configuración de la AppBar
-    appBarTheme: const AppBarTheme(
-      backgroundColor: Colors
-          .transparent, // Transparente por defecto, se puede cambiar por pantalla
-      elevation: 0, // Sin sombra
-      foregroundColor:
-          textDark, // Color del texto del título y los iconos de la app bar
-      iconTheme:
-          IconThemeData(color: textDark), // Color de los iconos de la app bar
+    // --- ESQUEMA DE COLOR (ColorScheme) ---
+    // El `colorScheme` es la forma moderna de definir los colores principales.
+    // Muchos widgets de Flutter usan estos valores por defecto.
+    colorScheme: ColorScheme.fromSeed(
+      seedColor: primaryBlue,
+      primary: primaryBlue, // Color principal (botones, appbars).
+      secondary:
+          accentBlue, // Color de acento (FloatingActionButtons, switches).
+      error: categoryRed, // Color para mensajes de error.
+      // `onSurface` es el color del texto sobre fondos como el del calendario.
+      // El sistema le baja la opacidad automáticamente para los días deshabilitados,
+      // logrando el efecto gris que querías.
+      onSurface: textDark,
     ),
 
-    // Configuración de los botones elevados (ElevatedButton)
+    // Define la fuente principal para toda la aplicación.
+    // NOTA: Asegúrate de que la fuente 'Inter' esté configurada en `pubspec.yaml`.
+    fontFamily: 'Inter',
+
+    // Color de fondo por defecto para todas las pantallas (`Scaffold`).
+    scaffoldBackgroundColor: backgroundLight,
+
+    // --- ESTILOS ESPECÍFICOS PARA WIDGETS ---
+
+    // Configuración para todas las AppBars.
+    appBarTheme: const AppBarTheme(
+      backgroundColor: Colors.transparent, // Fondo transparente por defecto.
+      elevation: 0, // Sin sombra.
+      foregroundColor: textDark, // Color para el título y los íconos.
+    ),
+
+    // Configuración para todos los ElevatedButton.
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
-        backgroundColor: primaryBlue, // Fondo azul principal
-        foregroundColor: Colors.white, // Texto blanco
+        backgroundColor: primaryBlue,
+        foregroundColor: Colors.white,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12.0), // Bordes redondeados
+          borderRadius: BorderRadius.circular(12.0),
         ),
-        padding: const EdgeInsets.symmetric(vertical: 16.0), // Padding generoso
+        padding: const EdgeInsets.symmetric(vertical: 16.0),
         textStyle: const TextStyle(
           fontSize: 18,
           fontWeight: FontWeight.bold,
-          fontFamily:
-              'Inter', // <--- ¡Asegúrate de que la fuente 'Inter' esté bien configurada en pubspec.yaml!
+          fontFamily: 'Inter',
         ),
       ),
     ),
 
-    // Configuración de los botones de texto (TextButton)
-    textButtonTheme: TextButtonThemeData(
-      style: TextButton.styleFrom(
-        foregroundColor: primaryBlue, // Texto azul principal
-        textStyle: const TextStyle(
-          fontWeight: FontWeight.bold,
-          fontFamily:
-              'Inter', // <--- ¡Asegúrate de que la fuente 'Inter' esté bien configurada en pubspec.yaml!
-        ),
-      ),
-    ),
-
-    // Configuración de los campos de entrada de texto (TextFormField, TextField)
+    // Configuración para todos los campos de texto (TextFormField).
     inputDecorationTheme: InputDecorationTheme(
       border: OutlineInputBorder(
-        // Borde general
-        borderRadius: BorderRadius.circular(12.0), // Bordes redondeados
-        borderSide:
-            BorderSide.none, // Sin borde visible, ya que usaremos filled
-      ),
-      enabledBorder: OutlineInputBorder(
-        // Borde cuando el campo está habilitado
         borderRadius: BorderRadius.circular(12.0),
         borderSide: BorderSide.none,
       ),
+      filled: true,
+      fillColor: inputFillColor,
+      contentPadding:
+          const EdgeInsets.symmetric(horizontal: 20.0, vertical: 15.0),
+      labelStyle: const TextStyle(color: textMedium),
+      hintStyle: const TextStyle(color: textMedium),
       focusedBorder: OutlineInputBorder(
-        // Borde cuando el campo está enfocado
         borderRadius: BorderRadius.circular(12.0),
-        borderSide: BorderSide(
-            color: accentBlue, width: 2.0), // Borde azul más notorio al enfocar
+        borderSide: const BorderSide(color: accentBlue, width: 2.0),
       ),
       errorBorder: OutlineInputBorder(
-        // Borde cuando hay un error
         borderRadius: BorderRadius.circular(12.0),
         borderSide: const BorderSide(color: categoryRed, width: 2.0),
       ),
-      focusedErrorBorder: OutlineInputBorder(
-        // Borde de error cuando enfocado
-        borderRadius: BorderRadius.circular(12.0),
-        borderSide: const BorderSide(color: categoryRed, width: 2.0),
-      ),
-      filled: true, // Fondo para los campos de entrada
-      fillColor: inputFillColor, // Color de fondo para los campos de entrada
-      contentPadding: const EdgeInsets.symmetric(
-          horizontal: 20.0, vertical: 15.0), // Padding interno
-      labelStyle: const TextStyle(
-          color: textMedium, fontFamily: 'Inter'), // Estilo del label
-      hintStyle: const TextStyle(
-          color: textMedium, fontFamily: 'Inter'), // Estilo del hint
     ),
 
-    // Configuración de las tarjetas (Card)
+    // Configuración para todas las Cards.
     cardTheme: CardTheme(
-      elevation: 4, // Sombra sutil
+      elevation: 2,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16.0), // Bordes más redondeados
+        borderRadius: BorderRadius.circular(16.0),
       ),
-      margin: const EdgeInsets.symmetric(
-          horizontal: 16.0, vertical: 8.0), // Margen exterior
-      color: Colors.white, // Fondo de las tarjetas
+      margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      color: Colors.white,
     ),
 
-    // Configuración del FloatingActionButton
+    // Configuración para el FloatingActionButton.
     floatingActionButtonTheme: const FloatingActionButtonThemeData(
-      backgroundColor: accentBlue, // Un azul de acento para el FAB
-      foregroundColor: Colors.white, // Icono blanco
+      backgroundColor: accentBlue,
+      foregroundColor: Colors.white,
       shape: RoundedRectangleBorder(
-        borderRadius:
-            BorderRadius.all(Radius.circular(16.0)), // Bordes redondeados
+        borderRadius: BorderRadius.all(Radius.circular(16.0)),
       ),
     ),
 
-    // Configuración de la barra de navegación inferior (BottomNavigationBar)
+    // Configuración para la BottomNavigationBar.
     bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-      backgroundColor: Colors.white, // Fondo blanco
-      selectedItemColor: primaryBlue, // Ítem seleccionado en azul
-      unselectedItemColor: textMedium, // Ítem no seleccionado en gris
-      elevation: 8, // Sombra
-      type: BottomNavigationBarType.fixed, // Asegura que los ítems no se muevan
-      selectedLabelStyle: TextStyle(
-          fontSize: 12, fontWeight: FontWeight.bold, fontFamily: 'Inter'),
-      unselectedLabelStyle: TextStyle(fontSize: 12, fontFamily: 'Inter'),
+      backgroundColor: Colors.white,
+      selectedItemColor: primaryBlue,
+      unselectedItemColor: textMedium,
+      elevation: 8,
+      type: BottomNavigationBarType.fixed,
     ),
 
-    // Configuración general de la tipografía (TextTheme)
-    // Usamos 'copyWith' para asegurar que el TextTheme predeterminado de Material sea la base
-    // y solo modificamos lo necesario, como la fuente y el color.
+    // Configuración para el selector de fecha (DatePicker).
+    datePickerTheme: const DatePickerThemeData(
+      backgroundColor: Colors.white,
+      headerBackgroundColor: primaryBlue,
+      headerForegroundColor: Colors.white,
+      todayForegroundColor: MaterialStatePropertyAll(primaryBlue),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.all(Radius.circular(16.0)),
+      ),
+    ),
+
+    // Configuración para el selector de hora (TimePicker).
+    timePickerTheme: const TimePickerThemeData(
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.all(Radius.circular(16.0)),
+      ),
+      hourMinuteShape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.all(Radius.circular(8)),
+      ),
+      dayPeriodBorderSide: BorderSide(color: primaryBlue),
+      dialHandColor: primaryBlue,
+    ),
+
+    // Configuración de los estilos de texto.
+    // Se hereda la fuente 'Inter' definida globalmente.
     textTheme: const TextTheme(
-      displayLarge: TextStyle(
-          fontSize: 57,
-          fontWeight: FontWeight.bold,
-          color: textDark,
-          fontFamily: 'Inter'),
-      displayMedium: TextStyle(
-          fontSize: 45,
-          fontWeight: FontWeight.bold,
-          color: textDark,
-          fontFamily: 'Inter'),
-      displaySmall: TextStyle(
-          fontSize: 36,
-          fontWeight: FontWeight.bold,
-          color: textDark,
-          fontFamily: 'Inter'),
-      headlineLarge: TextStyle(
-          fontSize: 32,
-          fontWeight: FontWeight.bold,
-          color: textDark,
-          fontFamily: 'Inter'),
-      headlineMedium: TextStyle(
-          fontSize: 28,
-          fontWeight: FontWeight.bold,
-          color: textDark,
-          fontFamily: 'Inter'),
-      headlineSmall: TextStyle(
-          fontSize: 24,
-          fontWeight: FontWeight.bold,
-          color: textDark,
-          fontFamily: 'Inter'),
-      titleLarge: TextStyle(
-          fontSize: 22,
-          fontWeight: FontWeight.bold,
-          color: textDark,
-          fontFamily: 'Inter'),
-      titleMedium: TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.w600,
-          color: textDark,
-          fontFamily: 'Inter'),
-      titleSmall: TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w500,
-          color: textDark,
-          fontFamily: 'Inter'),
-      bodyLarge: TextStyle(fontSize: 16, color: textDark, fontFamily: 'Inter'),
-      bodyMedium: TextStyle(fontSize: 14, color: textDark, fontFamily: 'Inter'),
-      bodySmall:
-          TextStyle(fontSize: 12, color: textMedium, fontFamily: 'Inter'),
+      displayLarge:
+          TextStyle(fontSize: 57, fontWeight: FontWeight.bold, color: textDark),
+      headlineMedium:
+          TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: textDark),
+      titleLarge:
+          TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: textDark),
+      titleMedium:
+          TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: textDark),
+      bodyLarge: TextStyle(fontSize: 16, color: textDark),
+      bodyMedium: TextStyle(fontSize: 14, color: textDark),
+      bodySmall: TextStyle(fontSize: 12, color: textMedium),
       labelLarge: TextStyle(
-          fontSize: 14,
-          color: Colors.white,
-          fontWeight: FontWeight.bold,
-          fontFamily: 'Inter'),
-      labelMedium:
-          TextStyle(fontSize: 12, color: Colors.white, fontFamily: 'Inter'),
-      labelSmall:
-          TextStyle(fontSize: 11, color: textMedium, fontFamily: 'Inter'),
+          fontSize: 14, color: Colors.white, fontWeight: FontWeight.bold),
     ),
   );
 }
