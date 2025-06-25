@@ -9,8 +9,7 @@ import 'package:venceya/models/user_data.dart';
 
 // --- DEFINICIÓN DEL WIDGET ---
 // ProfileScreen es un "Widget Dinámico" (StatefulWidget) porque necesita
-// cargar los datos del perfil del usuario de forma asíncrona y manejar
-// un estado de carga mientras lo hace.
+
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
@@ -21,9 +20,9 @@ class ProfileScreen extends StatefulWidget {
 // --- CLASE DE ESTADO DEL WIDGET ---
 class _ProfileScreenState extends State<ProfileScreen> {
   // --- VARIABLES DE ESTADO ---
-  UserData? _userData; // Almacenará los datos del perfil una vez cargados.
-  bool _isLoading = true; // Controla el indicador de carga.
-  String? _errorMessage; // Almacena mensajes de error.
+  UserData? _userData; 
+  bool _isLoading = true; 
+  String? _errorMessage; 
 
   // --- CICLO DE VIDA ---
   @override
@@ -77,8 +76,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   // --- GETTERS Y HELPERS DE UI ---
 
-  /// Una propiedad computada (`getter`) que devuelve el nombre a mostrar del usuario.
-  /// Encapsular esta lógica aquí hace que el widget `Text` en el `build` sea muy simple.
   String get _userName {
     if (_userData == null) return 'Usuario';
 

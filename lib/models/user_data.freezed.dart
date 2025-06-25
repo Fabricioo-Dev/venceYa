@@ -20,20 +20,24 @@ UserData _$UserDataFromJson(Map<String, dynamic> json) {
 
 /// @nodoc
 mixin _$UserData {
-  String get uid =>
-      throw _privateConstructorUsedError; // ID único de Firebase Auth
-  String get email => throw _privateConstructorUsedError;
+// El ID único del usuario, que viene de Firebase Authentication. Es el identificador principal.
+  String get uid => throw _privateConstructorUsedError;
+  String get email =>
+      throw _privateConstructorUsedError; // Todos los siguientes campos son opcionales (`?`) porque un usuario puede
+// no tenerlos todos. Por ejemplo, un usuario registrado por email no tendrá `photoUrl`
+// al principio, y un usuario de Google podría no tener `firstName`.
+// Nombre para mostrar, usualmente proporcionado por un proveedor social como Google.
   String? get displayName =>
-      throw _privateConstructorUsedError; // Nombre para mostrar (ej. de social login)
+      throw _privateConstructorUsedError; // URL de la foto de perfil, también usualmente de un proveedor social.
   String? get photoUrl =>
-      throw _privateConstructorUsedError; // URL de la foto de perfil
+      throw _privateConstructorUsedError; // Nombre del usuario, proporcionado en el formulario de registro manual.
   String? get firstName =>
-      throw _privateConstructorUsedError; // Nombre del usuario
+      throw _privateConstructorUsedError; // Apellido del usuario, proporcionado en el formulario de registro manual.
   String? get lastName =>
-      throw _privateConstructorUsedError; // Apellido del usuario
+      throw _privateConstructorUsedError; // La última vez que el usuario inició sesión. Usamos nuestro convertidor reutilizado.
   @TimestampConverter()
   DateTime? get lastLogin =>
-      throw _privateConstructorUsedError; // Último inicio de sesión
+      throw _privateConstructorUsedError; // La fecha en que el perfil del usuario fue creado en nuestra base de datos.
   @TimestampConverter()
   DateTime? get createdAt => throw _privateConstructorUsedError;
 
@@ -218,27 +222,31 @@ class _$UserDataImpl implements _UserData {
   factory _$UserDataImpl.fromJson(Map<String, dynamic> json) =>
       _$$UserDataImplFromJson(json);
 
+// El ID único del usuario, que viene de Firebase Authentication. Es el identificador principal.
   @override
   final String uid;
-// ID único de Firebase Auth
   @override
   final String email;
+// Todos los siguientes campos son opcionales (`?`) porque un usuario puede
+// no tenerlos todos. Por ejemplo, un usuario registrado por email no tendrá `photoUrl`
+// al principio, y un usuario de Google podría no tener `firstName`.
+// Nombre para mostrar, usualmente proporcionado por un proveedor social como Google.
   @override
   final String? displayName;
-// Nombre para mostrar (ej. de social login)
+// URL de la foto de perfil, también usualmente de un proveedor social.
   @override
   final String? photoUrl;
-// URL de la foto de perfil
+// Nombre del usuario, proporcionado en el formulario de registro manual.
   @override
   final String? firstName;
-// Nombre del usuario
+// Apellido del usuario, proporcionado en el formulario de registro manual.
   @override
   final String? lastName;
-// Apellido del usuario
+// La última vez que el usuario inició sesión. Usamos nuestro convertidor reutilizado.
   @override
   @TimestampConverter()
   final DateTime? lastLogin;
-// Último inicio de sesión
+// La fecha en que el perfil del usuario fue creado en nuestra base de datos.
   @override
   @TimestampConverter()
   final DateTime? createdAt;
@@ -304,21 +312,31 @@ abstract class _UserData implements UserData {
   factory _UserData.fromJson(Map<String, dynamic> json) =
       _$UserDataImpl.fromJson;
 
+// El ID único del usuario, que viene de Firebase Authentication. Es el identificador principal.
   @override
-  String get uid; // ID único de Firebase Auth
+  String get uid;
   @override
-  String get email;
+  String
+      get email; // Todos los siguientes campos son opcionales (`?`) porque un usuario puede
+// no tenerlos todos. Por ejemplo, un usuario registrado por email no tendrá `photoUrl`
+// al principio, y un usuario de Google podría no tener `firstName`.
+// Nombre para mostrar, usualmente proporcionado por un proveedor social como Google.
   @override
-  String? get displayName; // Nombre para mostrar (ej. de social login)
+  String?
+      get displayName; // URL de la foto de perfil, también usualmente de un proveedor social.
   @override
-  String? get photoUrl; // URL de la foto de perfil
+  String?
+      get photoUrl; // Nombre del usuario, proporcionado en el formulario de registro manual.
   @override
-  String? get firstName; // Nombre del usuario
+  String?
+      get firstName; // Apellido del usuario, proporcionado en el formulario de registro manual.
   @override
-  String? get lastName; // Apellido del usuario
+  String?
+      get lastName; // La última vez que el usuario inició sesión. Usamos nuestro convertidor reutilizado.
   @override
   @TimestampConverter()
-  DateTime? get lastLogin; // Último inicio de sesión
+  DateTime?
+      get lastLogin; // La fecha en que el perfil del usuario fue creado en nuestra base de datos.
   @override
   @TimestampConverter()
   DateTime? get createdAt;

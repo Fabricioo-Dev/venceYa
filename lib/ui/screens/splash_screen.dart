@@ -28,13 +28,9 @@ class _SplashScreenState extends State<SplashScreen> {
   /// Verifica si el usuario ya ha iniciado sesión y navega a la pantalla correcta.
   Future<void> _checkAuthAndNavigate() async {
     // Usamos `Future.delayed` para que la pantalla de bienvenida sea visible
-    // por un tiempo determinado (3 segundos), dando tiempo a que la app
-    // inicialice sus servicios en segundo plano.
+    // por un tiempo determinado
     await Future.delayed(const Duration(seconds: 3));
 
-    // Es crucial comprobar si el widget sigue "montado" (en pantalla) antes de
-    // usar su `context` para navegar, especialmente después de un `await`.
-    // Esto previene errores si el usuario cierra la app durante la espera.
     if (!mounted) return;
 
     // Usamos Provider para obtener acceso al AuthService de forma segura.

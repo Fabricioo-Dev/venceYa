@@ -20,8 +20,8 @@ import 'package:venceya/models/user_data.dart';
 import 'package:venceya/core/theme.dart';
 
 // --- DEFINICIÓN DEL WIDGET ---
-// LoginScreen es un "Widget Dinámico" (StatefulWidget) porque su contenido necesita cambiar
-// en respuesta a la interacción del usuario (texto en los campos, estado de carga, errores).
+// LoginScreen es un "Widget Dinámico" (StatefulWidget) 
+
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 

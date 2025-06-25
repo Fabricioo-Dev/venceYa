@@ -1,4 +1,3 @@
-// lib/ui/screens/dashboard_screen.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
@@ -8,6 +7,7 @@ import 'package:venceya/services/auth_service.dart';
 import 'package:venceya/services/firestore_service.dart';
 import 'package:venceya/core/theme.dart';
 import 'package:intl/intl.dart';
+import 'dart:async'; // Importar para usar Timer
 
 // --- DEFINICIÓN DEL WIDGET ---
 // DashboardScreen es un "Widget Dinámico" (StatefulWidget) porque necesita
@@ -22,6 +22,8 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  Timer?
+      _timer; // Declaración del temporizador para actualizaciones de UI basadas en el tiempo
 
   // --- CICLO DE VIDA ---
 
@@ -35,18 +37,30 @@ class _DashboardScreenState extends State<DashboardScreen>
     _updateLastLogin();
     // Revisa si el usuario es nuevo para mostrar el mensaje de bienvenida.
     _checkIfNewUserAndShowMessage();
+
+    // Configura un temporizador que se dispara periódicamente (cada 10 segundos)
+    // para forzar la reconstrucción del widget y reevaluar los recordatorios vencidos.
+    // He reducido el intervalo a 10 segundos para una respuesta visual más rápida.
+    _timer = Timer.periodic(const Duration(seconds: 10), (timer) {
+      if (mounted) {
+        // Asegura que el widget sigue montado antes de llamar a setState
+        setState(() {
+          // Un setState vacío es suficiente para forzar la re-evaluación y ver si un recordatorio ya vencio
+        });
+      }
+    });
   }
 
   // `dispose` se ejecuta cuando el widget se destruye para liberar recursos.
   @override
   void dispose() {
     _tabController.dispose();
+    _timer?.cancel(); // Cancela el temporizador para evitar fugas de memoria
     super.dispose();
   }
 
   // --- LÓGICA DE LA PANTALLA ---
 
-  /// Revisa si el usuario actual acaba de ser creado y muestra un mensaje de bienvenida.
   void _checkIfNewUserAndShowMessage() {
     // Obtenemos el usuario actual directamente de FirebaseAuth.
     final user = FirebaseAuth.instance.currentUser;
@@ -55,8 +69,6 @@ class _DashboardScreenState extends State<DashboardScreen>
     // `user.metadata.creationTime` nos da la fecha y hora exactas de creación de la cuenta.
     final creationTime = user.metadata.creationTime;
 
-    // Si la cuenta se creó hace menos de 5 segundos, asumimos que es un nuevo registro.
-    // Esta es la forma más simple y robusta de saber si el usuario acaba de llegar desde la pantalla de registro.
     if (creationTime != null &&
         DateTime.now().difference(creationTime).inSeconds < 5) {
       // Usamos `addPostFrameCallback` para mostrar el SnackBar de forma segura
@@ -69,7 +81,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                 children: [
                   Icon(Icons.check_circle, color: Colors.white),
                   SizedBox(width: 8),
-                  Text("¡Cuenta creada con éxito!"),
+                  Text(
+                      "¡Cuenta creada con éxito!"),
                 ],
               ),
               backgroundColor: AppTheme.categoryGreen,
@@ -78,6 +91,7 @@ class _DashboardScreenState extends State<DashboardScreen>
         }
       });
     }
+    
   }
 
   /// Actualiza la fecha del último inicio de sesión del usuario en Firestore.
@@ -112,6 +126,7 @@ class _DashboardScreenState extends State<DashboardScreen>
       itemCount: reminders.length,
       itemBuilder: (context, index) {
         final reminder = reminders[index];
+        // Comprueba si el recordatorio ha vencido comparando con la hora actual
         final bool isOverdue = reminder.dueDate.isBefore(DateTime.now());
 
         // `Card` y `ListTile` para cada fila de la lista.
@@ -131,6 +146,7 @@ class _DashboardScreenState extends State<DashboardScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
+                  // El texto de la fecha cambia de color si el recordatorio ha vencido
                   'Vence: ${DateFormat.yMMMd('es').add_jm().format(reminder.dueDate)}',
                   style: TextStyle(
                     color:
@@ -201,7 +217,7 @@ class _DashboardScreenState extends State<DashboardScreen>
       case ReminderCategory.personal:
         return 'Personal';
       case ReminderCategory.other:
-        return 'Otro';
+        return 'Otro'; 
     }
   }
 

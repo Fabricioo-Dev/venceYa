@@ -65,14 +65,7 @@ class FirestoreService {
 
   /// Obtiene un stream (flujo de datos en tiempo real) de los recordatorios de un usuario.
   Stream<List<Reminder>> getRemindersStream(String userId) {
-    // .where('userId', isEqualTo: userId) -> Filtra los documentos para obtener solo los del usuario actual.
-    // .orderBy('dueDate') -> Ordena los resultados por fecha de vencimiento.
-    // ¡IMPORTANTE! Para que una consulta con `where` y `orderBy` sobre campos diferentes funcione,
-    // necesitas crear un ÍNDICE COMPUESTO en la consola de Firebase Firestore.
-    // Firebase usualmente provee un link en el mensaje de error para crearlo automáticamente.
-
-    // .snapshots() -> Esto es lo que crea el Stream. A diferencia de .get() (que lee una vez),
-    // .snapshots() "escucha" los cambios en la base de datos y emite nuevos datos automáticamente.
+    
     return _firestore
         .collection('reminders')
         .where('userId', isEqualTo: userId)

@@ -11,14 +11,12 @@ _$ReminderImpl _$$ReminderImplFromJson(Map<String, dynamic> json) =>
       id: json['id'] as String?,
       userId: json['userId'] as String,
       title: json['title'] as String,
+      description: json['description'] as String?,
       dueDate:
           const TimestampConverter().fromJson(json['dueDate'] as Timestamp),
       category:
           $enumDecodeNullable(_$ReminderCategoryEnumMap, json['category']) ??
               ReminderCategory.other,
-      frequency:
-          $enumDecodeNullable(_$ReminderFrequencyEnumMap, json['frequency']) ??
-              ReminderFrequency.none,
       isNotificationEnabled: json['isNotificationEnabled'] as bool? ?? true,
       createdAt: _$JsonConverterFromJson<Timestamp, DateTime>(
           json['createdAt'], const TimestampConverter().fromJson),
@@ -31,9 +29,9 @@ Map<String, dynamic> _$$ReminderImplToJson(_$ReminderImpl instance) =>
       'id': instance.id,
       'userId': instance.userId,
       'title': instance.title,
+      'description': instance.description,
       'dueDate': const TimestampConverter().toJson(instance.dueDate),
       'category': _$ReminderCategoryEnumMap[instance.category]!,
-      'frequency': _$ReminderFrequencyEnumMap[instance.frequency]!,
       'isNotificationEnabled': instance.isNotificationEnabled,
       'createdAt': _$JsonConverterToJson<Timestamp, DateTime>(
           instance.createdAt, const TimestampConverter().toJson),
@@ -47,14 +45,6 @@ const _$ReminderCategoryEnumMap = {
   ReminderCategory.documents: 'documents',
   ReminderCategory.personal: 'personal',
   ReminderCategory.other: 'other',
-};
-
-const _$ReminderFrequencyEnumMap = {
-  ReminderFrequency.none: 'none',
-  ReminderFrequency.daily: 'daily',
-  ReminderFrequency.weekly: 'weekly',
-  ReminderFrequency.monthly: 'monthly',
-  ReminderFrequency.yearly: 'yearly',
 };
 
 Value? _$JsonConverterFromJson<Json, Value>(

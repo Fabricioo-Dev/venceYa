@@ -1,5 +1,6 @@
 // lib/ui/screens/add_edit_reminder_screen.dart
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // Importado para HapticFeedback
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -32,11 +33,13 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
       GlobalKey<FormState>(); // Clave para controlar y validar el formulario.
   final _titleController =
       TextEditingController(); // Controlador para el campo de texto del título.
+  // --- NUEVO CONTROLLER ---
+  final _descriptionController =
+      TextEditingController(); // Controlador para la descripción.
 
   // Variables para almacenar los datos del formulario.
   DateTime? _selectedDate;
   ReminderCategory _selectedCategory = ReminderCategory.other;
-  ReminderFrequency _selectedFrequency = ReminderFrequency.none;
   bool _isNotificationEnabled = true;
 
   // Variables para controlar el estado de la UI.
@@ -57,8 +60,9 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
 
   @override
   void dispose() {
-    // Es CRUCIAL limpiar el controlador para liberar memoria cuando el widget se destruye.
+    // Es CRUCIAL limpiar los controladores para liberar memoria.
     _titleController.dispose();
+    _descriptionController.dispose(); // Limpiamos el nuevo controller.
     super.dispose();
   }
 
@@ -77,9 +81,10 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
           if (reminder != null) {
             _initialReminderData = reminder;
             _titleController.text = reminder.title;
+            _descriptionController.text =
+                reminder.description ?? ''; // Cargamos la descripción.
             _selectedDate = reminder.dueDate;
             _selectedCategory = reminder.category;
-            _selectedFrequency = reminder.frequency;
             _isNotificationEnabled = reminder.isNotificationEnabled;
           } else {
             _errorMessage = "Recordatorio no encontrado.";
@@ -108,7 +113,6 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
       return;
     }
 
-    // Capturamos los objetos que dependen del context ANTES de cualquier `await`.
     final scaffoldMessenger = ScaffoldMessenger.of(context);
     final navigator = GoRouter.of(context);
 
@@ -127,13 +131,15 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
         throw Exception("Usuario no autenticado.");
       }
 
+      // Crea el objeto Reminder con los datos del formulario.
       final reminder = Reminder(
         id: widget.isEditMode ? _initialReminderData!.id : null,
         userId: currentUser.uid,
         title: _titleController.text.trim(),
+        description:
+            _descriptionController.text.trim(), // Guardamos la descripción.
         dueDate: _selectedDate!,
         category: _selectedCategory,
-        frequency: _selectedFrequency,
         isNotificationEnabled: _isNotificationEnabled,
         createdAt: widget.isEditMode
             ? _initialReminderData!.createdAt
@@ -190,22 +196,16 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
 
   /// Muestra el selector de fecha y hora, y valida que no sea una hora pasada.
   Future<void> _pickDate() async {
-    // Capturamos el ScaffoldMessenger antes de cualquier `await`.
     final scaffoldMessenger = ScaffoldMessenger.of(context);
 
-    // Mostramos el selector de fecha.
     final DateTime? pickedDate = await showDatePicker(
       context: context,
       initialDate:
           _selectedDate ?? DateTime.now().add(const Duration(hours: 1)),
-      firstDate:
-          DateTime.now(), // No permite seleccionar días anteriores a hoy.
+      firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
-      // El builder nos permite envolver el calendario en un tema personalizado.
       builder: (context, child) {
         return Theme(
-          // Usamos el tema global, pero sobreescribimos el `colorScheme`
-          // para que el texto de los días deshabilitados sea más gris.
           data: Theme.of(context).copyWith(
             colorScheme: Theme.of(context).colorScheme.copyWith(
                   onSurface: AppTheme.textMedium,
@@ -216,21 +216,16 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
       },
     );
 
-    if (pickedDate == null) return; // El usuario canceló la selección de fecha.
-
-    // Comprobación de seguridad para el BuildContext asíncrono.
+    if (pickedDate == null) return;
     if (!mounted) return;
 
-    // Mostramos el selector de hora.
     final TimeOfDay? pickedTime = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.fromDateTime(
           _selectedDate ?? DateTime.now().add(const Duration(hours: 1))),
     );
-    if (pickedTime == null) return; // El usuario canceló la selección de hora.
+    if (pickedTime == null) return;
 
-    // --- ¡NUEVA LÓGICA DE VALIDACIÓN DE HORA! ---
-    // 1. Construimos la fecha y hora completas que el usuario ha seleccionado.
     final selectedDateTime = DateTime(
       pickedDate.year,
       pickedDate.month,
@@ -239,9 +234,7 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
       pickedTime.minute,
     );
 
-    // 2. Verificamos si la fecha y hora seleccionadas son anteriores al momento actual.
     if (selectedDateTime.isBefore(DateTime.now())) {
-      // 3. Si lo son, mostramos un mensaje de error y no hacemos nada más.
       scaffoldMessenger.showSnackBar(
         const SnackBar(
           content: Text('No puedes seleccionar una fecha u hora pasada.'),
@@ -251,8 +244,8 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
       return;
     }
 
-    // 4. Si la validación pasa, actualizamos el estado con la nueva fecha.
     setState(() {
+      HapticFeedback.lightImpact(); // Añade una vibración sutil.
       _selectedDate = selectedDateTime;
     });
   }
@@ -273,22 +266,6 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
     }
   }
 
-  /// Convierte el enum de Frecuencia a texto legible en español.
-  String _getFrequencyText(ReminderFrequency frequency) {
-    switch (frequency) {
-      case ReminderFrequency.none:
-        return 'Único';
-      case ReminderFrequency.daily:
-        return 'Diario';
-      case ReminderFrequency.weekly:
-        return 'Semanal';
-      case ReminderFrequency.monthly:
-        return 'Mensual';
-      case ReminderFrequency.yearly:
-        return 'Anual';
-    }
-  }
-
   // --- CONSTRUCCIÓN DE LA UI ---
   @override
   Widget build(BuildContext context) {
@@ -301,10 +278,8 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
           onPressed: () => context.go('/dashboard'),
         ),
       ),
-      // Muestra un cargador inicial solo si estamos editando y aún no hay datos.
       body: _isLoading && _initialReminderData == null
           ? const Center(child: CircularProgressIndicator())
-          // El Stack permite superponer widgets para la capa de carga.
           : Stack(
               children: [
                 SingleChildScrollView(
@@ -318,7 +293,7 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
                           controller: _titleController,
                           decoration: const InputDecoration(
                             labelText: 'Título del Recordatorio',
-                            hintText: 'Ej. Pagar alquiler, Renovación seguro',
+                            hintText: 'Ej. Pagar alquiler',
                           ),
                           validator: (value) {
                             if (value == null || value.trim().isEmpty) {
@@ -326,6 +301,17 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
                             }
                             return null;
                           },
+                        ),
+                        const SizedBox(height: 20),
+                        // --- CAMPO DE DESCRIPCIÓN AÑADIDO ---
+                        TextFormField(
+                          controller: _descriptionController,
+                          decoration: const InputDecoration(
+                            labelText: 'Descripción (Opcional)',
+                            hintText: 'Añade detalles adicionales aquí...',
+                          ),
+                          maxLines: 3, // Permite que el campo sea multilínea.
+                          textCapitalization: TextCapitalization.sentences,
                         ),
                         const SizedBox(height: 20),
                         ListTile(
@@ -369,23 +355,6 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
                           },
                         ),
                         const SizedBox(height: 20),
-                        DropdownButtonFormField<ReminderFrequency>(
-                          value: _selectedFrequency,
-                          decoration:
-                              const InputDecoration(labelText: 'Frecuencia'),
-                          items: ReminderFrequency.values.map((freq) {
-                            return DropdownMenuItem(
-                              value: freq,
-                              child: Text(_getFrequencyText(freq)),
-                            );
-                          }).toList(),
-                          onChanged: (newValue) {
-                            if (newValue != null) {
-                              setState(() => _selectedFrequency = newValue);
-                            }
-                          },
-                        ),
-                        const SizedBox(height: 20),
                         SwitchListTile(
                           title: Text('Activar Notificación',
                               style: Theme.of(context).textTheme.titleMedium),
@@ -419,9 +388,6 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
                     ),
                   ),
                 ),
-
-                // Si _isLoading es true, muestra una barrera semitransparente
-                // y un indicador de carga en el centro, por encima de todo.
                 if (_isLoading) ...[
                   const ModalBarrier(dismissible: false, color: Colors.black54),
                   const Center(child: CircularProgressIndicator()),

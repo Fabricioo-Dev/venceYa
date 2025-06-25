@@ -20,19 +20,25 @@ Reminder _$ReminderFromJson(Map<String, dynamic> json) {
 
 /// @nodoc
 mixin _$Reminder {
+// ID del documento de Firestore (se asigna después de crearlo).
   String? get id =>
-      throw _privateConstructorUsedError; // ID del documento de Firestore, opcional en la creación
+      throw _privateConstructorUsedError; // ID del usuario al que pertenece el recordatorio.
   String get userId =>
-      throw _privateConstructorUsedError; // ID del usuario propietario
-  String get title => throw _privateConstructorUsedError;
+      throw _privateConstructorUsedError; // Título principal del recordatorio.
+  String get title =>
+      throw _privateConstructorUsedError; // Campo opcional para notas o detalles adicionales.
+  String? get description =>
+      throw _privateConstructorUsedError; // Fecha y hora exactas del vencimiento.
   @TimestampConverter()
-  DateTime get dueDate => throw _privateConstructorUsedError;
-  ReminderCategory get category => throw _privateConstructorUsedError;
-  ReminderFrequency get frequency => throw _privateConstructorUsedError;
-  bool get isNotificationEnabled => throw _privateConstructorUsedError;
+  DateTime get dueDate =>
+      throw _privateConstructorUsedError; // Categoría del recordatorio, con "Otro" como valor por defecto.
+  ReminderCategory get category =>
+      throw _privateConstructorUsedError; // Controla si la notificación está habilitada, `true` por defecto.
+  bool get isNotificationEnabled =>
+      throw _privateConstructorUsedError; // Fecha de creación del recordatorio.
   @TimestampConverter()
   DateTime? get createdAt =>
-      throw _privateConstructorUsedError; // Se establecerá en el servidor o cliente
+      throw _privateConstructorUsedError; // Fecha de la última actualización del recordatorio.
   @TimestampConverter()
   DateTime? get updatedAt => throw _privateConstructorUsedError;
 
@@ -55,9 +61,9 @@ abstract class $ReminderCopyWith<$Res> {
       {String? id,
       String userId,
       String title,
+      String? description,
       @TimestampConverter() DateTime dueDate,
       ReminderCategory category,
-      ReminderFrequency frequency,
       bool isNotificationEnabled,
       @TimestampConverter() DateTime? createdAt,
       @TimestampConverter() DateTime? updatedAt});
@@ -81,9 +87,9 @@ class _$ReminderCopyWithImpl<$Res, $Val extends Reminder>
     Object? id = freezed,
     Object? userId = null,
     Object? title = null,
+    Object? description = freezed,
     Object? dueDate = null,
     Object? category = null,
-    Object? frequency = null,
     Object? isNotificationEnabled = null,
     Object? createdAt = freezed,
     Object? updatedAt = freezed,
@@ -101,6 +107,10 @@ class _$ReminderCopyWithImpl<$Res, $Val extends Reminder>
           ? _value.title
           : title // ignore: cast_nullable_to_non_nullable
               as String,
+      description: freezed == description
+          ? _value.description
+          : description // ignore: cast_nullable_to_non_nullable
+              as String?,
       dueDate: null == dueDate
           ? _value.dueDate
           : dueDate // ignore: cast_nullable_to_non_nullable
@@ -109,10 +119,6 @@ class _$ReminderCopyWithImpl<$Res, $Val extends Reminder>
           ? _value.category
           : category // ignore: cast_nullable_to_non_nullable
               as ReminderCategory,
-      frequency: null == frequency
-          ? _value.frequency
-          : frequency // ignore: cast_nullable_to_non_nullable
-              as ReminderFrequency,
       isNotificationEnabled: null == isNotificationEnabled
           ? _value.isNotificationEnabled
           : isNotificationEnabled // ignore: cast_nullable_to_non_nullable
@@ -141,9 +147,9 @@ abstract class _$$ReminderImplCopyWith<$Res>
       {String? id,
       String userId,
       String title,
+      String? description,
       @TimestampConverter() DateTime dueDate,
       ReminderCategory category,
-      ReminderFrequency frequency,
       bool isNotificationEnabled,
       @TimestampConverter() DateTime? createdAt,
       @TimestampConverter() DateTime? updatedAt});
@@ -165,9 +171,9 @@ class __$$ReminderImplCopyWithImpl<$Res>
     Object? id = freezed,
     Object? userId = null,
     Object? title = null,
+    Object? description = freezed,
     Object? dueDate = null,
     Object? category = null,
-    Object? frequency = null,
     Object? isNotificationEnabled = null,
     Object? createdAt = freezed,
     Object? updatedAt = freezed,
@@ -185,6 +191,10 @@ class __$$ReminderImplCopyWithImpl<$Res>
           ? _value.title
           : title // ignore: cast_nullable_to_non_nullable
               as String,
+      description: freezed == description
+          ? _value.description
+          : description // ignore: cast_nullable_to_non_nullable
+              as String?,
       dueDate: null == dueDate
           ? _value.dueDate
           : dueDate // ignore: cast_nullable_to_non_nullable
@@ -193,10 +203,6 @@ class __$$ReminderImplCopyWithImpl<$Res>
           ? _value.category
           : category // ignore: cast_nullable_to_non_nullable
               as ReminderCategory,
-      frequency: null == frequency
-          ? _value.frequency
-          : frequency // ignore: cast_nullable_to_non_nullable
-              as ReminderFrequency,
       isNotificationEnabled: null == isNotificationEnabled
           ? _value.isNotificationEnabled
           : isNotificationEnabled // ignore: cast_nullable_to_non_nullable
@@ -220,9 +226,9 @@ class _$ReminderImpl implements _Reminder {
       {this.id,
       required this.userId,
       required this.title,
+      this.description,
       @TimestampConverter() required this.dueDate,
       this.category = ReminderCategory.other,
-      this.frequency = ReminderFrequency.none,
       this.isNotificationEnabled = true,
       @TimestampConverter() this.createdAt,
       @TimestampConverter() this.updatedAt});
@@ -230,37 +236,42 @@ class _$ReminderImpl implements _Reminder {
   factory _$ReminderImpl.fromJson(Map<String, dynamic> json) =>
       _$$ReminderImplFromJson(json);
 
+// ID del documento de Firestore (se asigna después de crearlo).
   @override
   final String? id;
-// ID del documento de Firestore, opcional en la creación
+// ID del usuario al que pertenece el recordatorio.
   @override
   final String userId;
-// ID del usuario propietario
+// Título principal del recordatorio.
   @override
   final String title;
+// Campo opcional para notas o detalles adicionales.
+  @override
+  final String? description;
+// Fecha y hora exactas del vencimiento.
   @override
   @TimestampConverter()
   final DateTime dueDate;
+// Categoría del recordatorio, con "Otro" como valor por defecto.
   @override
   @JsonKey()
   final ReminderCategory category;
-  @override
-  @JsonKey()
-  final ReminderFrequency frequency;
+// Controla si la notificación está habilitada, `true` por defecto.
   @override
   @JsonKey()
   final bool isNotificationEnabled;
+// Fecha de creación del recordatorio.
   @override
   @TimestampConverter()
   final DateTime? createdAt;
-// Se establecerá en el servidor o cliente
+// Fecha de la última actualización del recordatorio.
   @override
   @TimestampConverter()
   final DateTime? updatedAt;
 
   @override
   String toString() {
-    return 'Reminder(id: $id, userId: $userId, title: $title, dueDate: $dueDate, category: $category, frequency: $frequency, isNotificationEnabled: $isNotificationEnabled, createdAt: $createdAt, updatedAt: $updatedAt)';
+    return 'Reminder(id: $id, userId: $userId, title: $title, description: $description, dueDate: $dueDate, category: $category, isNotificationEnabled: $isNotificationEnabled, createdAt: $createdAt, updatedAt: $updatedAt)';
   }
 
   @override
@@ -271,11 +282,11 @@ class _$ReminderImpl implements _Reminder {
             (identical(other.id, id) || other.id == id) &&
             (identical(other.userId, userId) || other.userId == userId) &&
             (identical(other.title, title) || other.title == title) &&
+            (identical(other.description, description) ||
+                other.description == description) &&
             (identical(other.dueDate, dueDate) || other.dueDate == dueDate) &&
             (identical(other.category, category) ||
                 other.category == category) &&
-            (identical(other.frequency, frequency) ||
-                other.frequency == frequency) &&
             (identical(other.isNotificationEnabled, isNotificationEnabled) ||
                 other.isNotificationEnabled == isNotificationEnabled) &&
             (identical(other.createdAt, createdAt) ||
@@ -286,8 +297,8 @@ class _$ReminderImpl implements _Reminder {
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, id, userId, title, dueDate,
-      category, frequency, isNotificationEnabled, createdAt, updatedAt);
+  int get hashCode => Object.hash(runtimeType, id, userId, title, description,
+      dueDate, category, isNotificationEnabled, createdAt, updatedAt);
 
   /// Create a copy of Reminder
   /// with the given fields replaced by the non-null parameter values.
@@ -310,9 +321,9 @@ abstract class _Reminder implements Reminder {
       {final String? id,
       required final String userId,
       required final String title,
+      final String? description,
       @TimestampConverter() required final DateTime dueDate,
       final ReminderCategory category,
-      final ReminderFrequency frequency,
       final bool isNotificationEnabled,
       @TimestampConverter() final DateTime? createdAt,
       @TimestampConverter() final DateTime? updatedAt}) = _$ReminderImpl;
@@ -320,24 +331,27 @@ abstract class _Reminder implements Reminder {
   factory _Reminder.fromJson(Map<String, dynamic> json) =
       _$ReminderImpl.fromJson;
 
+// ID del documento de Firestore (se asigna después de crearlo).
   @override
-  String? get id; // ID del documento de Firestore, opcional en la creación
+  String? get id; // ID del usuario al que pertenece el recordatorio.
   @override
-  String get userId; // ID del usuario propietario
+  String get userId; // Título principal del recordatorio.
   @override
-  String get title;
+  String get title; // Campo opcional para notas o detalles adicionales.
   @override
-  @TimestampConverter()
-  DateTime get dueDate;
-  @override
-  ReminderCategory get category;
-  @override
-  ReminderFrequency get frequency;
-  @override
-  bool get isNotificationEnabled;
+  String? get description; // Fecha y hora exactas del vencimiento.
   @override
   @TimestampConverter()
-  DateTime? get createdAt; // Se establecerá en el servidor o cliente
+  DateTime
+      get dueDate; // Categoría del recordatorio, con "Otro" como valor por defecto.
+  @override
+  ReminderCategory
+      get category; // Controla si la notificación está habilitada, `true` por defecto.
+  @override
+  bool get isNotificationEnabled; // Fecha de creación del recordatorio.
+  @override
+  @TimestampConverter()
+  DateTime? get createdAt; // Fecha de la última actualización del recordatorio.
   @override
   @TimestampConverter()
   DateTime? get updatedAt;

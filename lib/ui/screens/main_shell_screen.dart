@@ -4,14 +4,6 @@ import 'package:go_router/go_router.dart';
 
 // --- DEFINICIÓN DEL WIDGET ---
 // MainShellScreen es la "cáscara" o "plantilla" principal de la aplicación.
-// Es un ejemplo perfecto de un "Widget Estático" (StatelessWidget).
-//
-// ¿Por qué es estático? Porque no necesita "recordar" ningún estado que cambie por sí mismo.
-// Su única misión es:
-// 1. Dibujar una estructura fija (el Scaffold con la barra de navegación inferior).
-// 2. Mostrar en su cuerpo (`body`) la pantalla que GoRouter le ordene (`child`).
-//
-// Este widget se reconstruye cuando GoRouter le pasa un `child` diferente, pero no usa `setState()`.
 class MainShellScreen extends StatelessWidget {
   /// El widget 'child' es la pantalla actual que GoRouter inyecta aquí.
   /// Puede ser DashboardScreen, ProfileScreen, etc., dependiendo de la ruta.
@@ -23,7 +15,7 @@ class MainShellScreen extends StatelessWidget {
   });
 
   /// Método privado para determinar qué ítem de la barra de navegación resaltar.
-  /// Mantenemos esta lógica fuera del método `build` para que sea más limpio.
+  
   int _getSelectedIndex(BuildContext context) {
     // Obtenemos la ruta actual usando GoRouterState. Es la forma moderna y limpia.
     final String location = GoRouterState.of(context).uri.toString();
@@ -63,7 +55,6 @@ class MainShellScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       // El cuerpo del Scaffold es simplemente el widget 'child' que nos pasa GoRouter.
-      // Aquí es donde ocurre la "magia" del ShellRoute, mostrando la pantalla correcta.
       body: child,
 
       // La barra de navegación persistente en la parte inferior.
