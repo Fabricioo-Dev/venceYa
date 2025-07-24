@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "914023705727",
+    "project_id": "venceya-761cf",
+    "storage_bucket": "venceya-761cf.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:914023705727:android:b35db5243d088e2821234a",
+        "android_client_info": {
+          "package_name": "com.example.venceya"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "914023705727-61f55ad9qne1cvqto9q8kfq0aujmokph.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.venceya",
+            "certificate_hash": "1a34c524ec1e33a59ce9d910fb30559719e822a6"
+          }
+        },
+        {
+          "client_id": "914023705727-98ip6m79pr9i7a5ks6u2lfteetpgclu2.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBH_jjL65tDJbBDKkl4_-TtcwkgTvn0ACw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "914023705727-98ip6m79pr9i7a5ks6u2lfteetpgclu2.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

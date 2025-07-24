@@ -1,12 +1,12 @@
 // lib/ui/screens/reminder_detail_screen.dart
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import 'package:venceya/core/theme.dart';
 import 'package:venceya/models/reminder.dart';
 import 'package:venceya/services/firestore_service.dart';
 import 'package:venceya/services/local_notification_service.dart';
-import 'package:venceya/core/theme.dart';
 
 class ReminderDetailScreen extends StatefulWidget {
   final String reminderId;
@@ -28,51 +28,61 @@ class _ReminderDetailScreenState extends State<ReminderDetailScreen> {
   }
 
   Future<void> _loadReminder() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
+    if (!_isLoading) {
+      setState(() => _isLoading = true);
+    }
     try {
-      final reminder = await context
+      final reminderData = await context
           .read<FirestoreService>()
           .getReminderById(widget.reminderId);
-
       if (mounted) {
         setState(() {
-          _reminder = reminder;
-          if (reminder == null) {
-            _errorMessage = "Recordatorio no encontrado o ya no existe.";
-          }
+          _reminder = reminderData;
+          _errorMessage = reminderData == null
+              ? "El recordatorio no fue encontrado."
+              : null;
         });
       }
     } catch (e) {
-      if (mounted) {
-        setState(() {
-          _errorMessage = "Error al cargar el recordatorio: ${e.toString()}";
-        });
-      }
+      if (mounted) setState(() => _errorMessage = "Error al cargar los datos.");
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
   Future<void> _deleteReminder() async {
-    if (_reminder == null) return;
+    final bool? confirmed = await _showDeleteConfirmationDialog();
+    if (confirmed != true || !mounted) return;
 
-  
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
-    final navigator = GoRouter.of(context);
-    final firestoreService = context.read<FirestoreService>();
-    final localNotificationService = context.read<LocalNotificationService>();
+    setState(() => _isLoading = true);
+    try {
+      await context.read<FirestoreService>().deleteReminder(widget.reminderId);
+      await context
+          .read<LocalNotificationService>()
+          .cancelNotification(widget.reminderId.hashCode);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Recordatorio eliminado'),
+            backgroundColor: AppTheme.categoryGreen));
+        context.pop();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: const Text('Error al eliminar el recordatorio.'),
+            backgroundColor: Theme.of(context).colorScheme.error));
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
-    // `showDialog` crea un "async gap". Pausa la ejecución aquí.
-    final confirmDelete = await showDialog<bool>(
+  Future<bool?> _showDeleteConfirmationDialog() {
+    return showDialog<bool>(
       context: context,
-      builder: (BuildContext dialogContext) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Confirmar Eliminación'),
-        content: const Text(
-            '¿Estás seguro de que quieres eliminar este recordatorio?'),
+        content: const Text('¿Estás seguro? Esta acción no se puede deshacer.'),
         actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
@@ -81,42 +91,126 @@ class _ReminderDetailScreenState extends State<ReminderDetailScreen> {
           ElevatedButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
             style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.categoryRed,
-                foregroundColor: Colors.white),
+              backgroundColor: Theme.of(context).colorScheme.error,
+              foregroundColor: Colors.white,
+            ),
             child: const Text('Eliminar'),
           ),
         ],
       ),
     );
+  }
 
-    if (confirmDelete != true) return;
+  @override
+  Widget build(BuildContext context) {
+    // Determina si el recordatorio está vencido aquí para usarlo en la UI.
+    final bool isOverdue = _reminder?.dueDate.isBefore(DateTime.now()) ?? false;
 
-    setState(() => _isLoading = true);
+    return Scaffold(
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.pop(),
+        ),
+        title: Text(_reminder?.title ?? 'Detalle'),
+        actions: [
+          if (_reminder != null) ...[
+            IconButton(
+              icon: const Icon(Icons.edit_outlined),
+              tooltip: 'Editar',
+              // Si el recordatorio está vencido (`isOverdue`), `onPressed`
+              // es `null`, lo que deshabilita el botón automáticamente.
+              // En caso contrario, permite la navegación.
+              onPressed: isOverdue
+                  ? null
+                  : () => context.pushNamed(
+                        'editReminder',
+                        pathParameters: {'id': _reminder!.id!},
+                      ),
+            ),
+            IconButton(
+              icon: Icon(Icons.delete_outline,
+                  color: Theme.of(context).colorScheme.error),
+              tooltip: 'Eliminar',
+              onPressed: _deleteReminder,
+            ),
+          ]
+        ],
+      ),
+      body: _buildBody(),
+    );
+  }
 
-    try {
-      // Usamos las referencias locales seguras que guardamos antes.
-      await firestoreService.deleteReminder(_reminder!.id!);
-
-      final notificationId = _reminder!.id!.hashCode & 0x7FFFFFFF;
-      await localNotificationService.cancelNotification(notificationId);
-
-      scaffoldMessenger.showSnackBar(
-        const SnackBar(
-          content: Text('Recordatorio eliminado con éxito.'),
-          backgroundColor: AppTheme.categoryGreen,
+  Widget _buildBody() {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_errorMessage != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Text(_errorMessage!, textAlign: TextAlign.center),
         ),
       );
-
-      // Usamos la referencia segura del navegador.
-      navigator.go('/dashboard');
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _errorMessage = "Error al eliminar: ${e.toString()}";
-          _isLoading = false;
-        });
-      }
     }
+    if (_reminder == null) {
+      return const Center(child: Text('El recordatorio ya no existe.'));
+    }
+    return _buildReminderDetails(_reminder!);
+  }
+
+  Widget _buildReminderDetails(Reminder reminder) {
+    return RefreshIndicator(
+      onRefresh: _loadReminder,
+      child: ListView(
+        padding: const EdgeInsets.all(16.0),
+        children: <Widget>[
+          if (reminder.dueDate.isBefore(DateTime.now())) _buildOverdueBanner(),
+          _buildDetailItem('Título', reminder.title),
+          if (reminder.description?.isNotEmpty ?? false)
+            _buildDetailItem('Descripción', reminder.description!),
+          _buildDetailItem('Vence el',
+              DateFormat.yMMMMEEEEd('es').add_jm().format(reminder.dueDate)),
+          _buildDetailItem('Categoría', _getCategoryText(reminder.category)),
+          _buildDetailItem('Notificación',
+              reminder.isNotificationEnabled ? 'Activada' : 'Desactivada'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailItem(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: Theme.of(context).textTheme.bodySmall),
+          const SizedBox(height: 4),
+          Text(value, style: Theme.of(context).textTheme.bodyLarge),
+          const Divider(thickness: 0.5, height: 16),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOverdueBanner() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.error.withAlpha(26),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.warning_amber_rounded,
+              color: Theme.of(context).colorScheme.error),
+          const SizedBox(width: 12),
+          const Expanded(child: Text('Este recordatorio ha vencido.')),
+        ],
+      ),
+    );
   }
 
   String _getCategoryText(ReminderCategory category) {
@@ -132,138 +226,5 @@ class _ReminderDetailScreenState extends State<ReminderDetailScreen> {
       case ReminderCategory.other:
         return 'Otro';
     }
-  }
-
-  Widget _buildDetailItem(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label,
-              style: Theme.of(context)
-                  .textTheme
-                  .labelLarge
-                  ?.copyWith(color: AppTheme.textMedium)),
-          const SizedBox(height: 4),
-          Text(value,
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyLarge
-                  ?.copyWith(fontWeight: FontWeight.bold)),
-          const Divider(thickness: 1, height: 16),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBody() {
-    if (_isLoading && _reminder == null) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    if (_errorMessage != null) {
-      return Center(
-          child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Text(_errorMessage!,
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: AppTheme.categoryRed, fontSize: 16)),
-      ));
-    }
-    if (_reminder == null) {
-      return const Center(child: Text('Recordatorio no disponible.'));
-    }
-
-    final bool isOverdue = _reminder!.dueDate.isBefore(DateTime.now());
-
-    return RefreshIndicator(
-      onRefresh: _loadReminder,
-      child: ListView(
-        padding: const EdgeInsets.all(16.0),
-        children: <Widget>[
-          if (isOverdue)
-            Container(
-              padding: const EdgeInsets.all(12),
-              margin: const EdgeInsets.only(bottom: 16),
-              decoration: BoxDecoration(
-                color: AppTheme.categoryRed.withAlpha(50),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Row(
-                children: [
-                  Icon(Icons.warning_amber_rounded,
-                      color: AppTheme.categoryRed),
-                  SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'Este recordatorio ha vencido. La edición está deshabilitada.',
-                      style: TextStyle(color: AppTheme.textDark),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          _buildDetailItem('Título:', _reminder!.title),
-          if (_reminder!.description != null &&
-              _reminder!.description!.isNotEmpty)
-            _buildDetailItem('Descripción:', _reminder!.description!),
-          _buildDetailItem('Vence el:',
-              DateFormat.yMMMMEEEEd('es').add_jm().format(_reminder!.dueDate)),
-          _buildDetailItem('Categoría:', _getCategoryText(_reminder!.category)),
-          _buildDetailItem('Notificación Habilitada:',
-              _reminder!.isNotificationEnabled ? 'Sí' : 'No'),
-          if (_reminder!.createdAt != null)
-            _buildDetailItem('Creado el:',
-                DateFormat.yMMMd('es').add_jm().format(_reminder!.createdAt!)),
-          if (_reminder!.updatedAt != null)
-            _buildDetailItem('Última Actualización:',
-                DateFormat.yMMMd('es').add_jm().format(_reminder!.updatedAt!)),
-        ],
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final bool isOverdue = _reminder?.dueDate.isBefore(DateTime.now()) ?? false;
-
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/dashboard'),
-        ),
-        title: Text(_reminder?.title ?? 'Detalle'),
-        actions: _reminder == null || _isLoading
-            ? null
-            : [
-                IconButton(
-                  icon: const Icon(Icons.edit),
-                  tooltip: isOverdue
-                      ? 'No se puede editar un recordatorio vencido'
-                      : 'Editar Recordatorio',
-                  onPressed: isOverdue
-                      ? null
-                      : () => context.goNamed('editReminder',
-                          pathParameters: {'id': _reminder!.id!}),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.delete_forever,
-                      color: AppTheme.categoryRed),
-                  tooltip: 'Eliminar Recordatorio',
-                  onPressed: _deleteReminder,
-                ),
-              ],
-      ),
-      body: Stack(
-        children: [
-          _buildBody(),
-          if (_isLoading && _reminder != null) ...[
-            const ModalBarrier(dismissible: false, color: Colors.black54),
-            const Center(child: CircularProgressIndicator()),
-          ],
-        ],
-      ),
-    );
   }
 }

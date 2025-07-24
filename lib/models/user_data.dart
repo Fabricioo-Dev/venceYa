@@ -1,50 +1,38 @@
 // lib/models/user_data.dart
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-// Importamos el modelo de Reminder, no porque lo necesitemos directamente,
-// sino para REUTILIZAR el `TimestampConverter` que definimos allí. ¡Es una buena práctica!
-import 'reminder.dart';
 
-// Líneas que conectan este archivo con los archivos que generará `build_runner`.
+// Se importa para reutilizar el conversor de Timestamp definido en el modelo Reminder.
+import 'package:venceya/models/reminder.dart';
+
+// Archivos generados por `build_runner` para Freezed y JsonSerializable.
 part 'user_data.freezed.dart';
 part 'user_data.g.dart';
 
-// --- DEFINICIÓN DEL MODELO DE DATOS DEL USUARIO ---
-// La anotación `@freezed` instruye al generador de código para que cree una clase
-// de datos inmutable, con métodos `copyWith`, `==`, etc., ahorrándonos mucho trabajo.
+/// Modelo de datos inmutable para el usuario.
+///
+/// `@freezed` genera automáticamente métodos como `copyWith`, `==` y `toString`,
+/// lo que asegura un modelo de datos robusto y sin código repetitivo.
 @freezed
 class UserData with _$UserData {
   const factory UserData({
-    // El ID único del usuario, que viene de Firebase Authentication. Es el identificador principal.
+    // ID único de Firebase Authentication. Es el campo principal.
     required String uid,
     required String email,
 
-    // Todos los siguientes campos son opcionales (`?`) porque un usuario puede
-    // no tenerlos todos. Por ejemplo, un usuario registrado por email no tendrá `photoUrl`
-    // al principio, y un usuario de Google podría no tener `firstName`.
-
-    // Nombre para mostrar, usualmente proporcionado por un proveedor social como Google.
+    // Campos opcionales que pueden venir de proveedores de auth o del registro.
     String? displayName,
-
-    // URL de la foto de perfil, también usualmente de un proveedor social.
     String? photoUrl,
-
-    // Nombre del usuario, proporcionado en el formulario de registro manual.
     String? firstName,
-
-    // Apellido del usuario, proporcionado en el formulario de registro manual.
     String? lastName,
 
-    // La última vez que el usuario inició sesión. Usamos nuestro convertidor reutilizado.
+    // Se usa un conversor para transformar el `Timestamp` de Firestore a `DateTime` de Dart.
     @TimestampConverter() DateTime? lastLogin,
-
-    // La fecha en que el perfil del usuario fue creado en nuestra base de datos.
     @TimestampConverter() DateTime? createdAt,
-  }) = _UserData; // La implementación real que será generada por Freezed.
+  }) = _UserData;
 
-  /// El factory constructor que permite crear una instancia de `UserData`
-  /// a partir de un mapa JSON (los datos que vienen de Firestore).
-  /// Llama al método `_$UserDataFromJson` que será generado automáticamente.
+  /// Constructor factory para crear una instancia de `UserData` desde un mapa JSON.
+  /// Esencial para leer los datos que vienen de Firestore.
   factory UserData.fromJson(Map<String, dynamic> json) =>
       _$UserDataFromJson(json);
 }

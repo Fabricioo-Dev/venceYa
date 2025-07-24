@@ -1,58 +1,40 @@
 // lib/ui/screens/add_edit_reminder_screen.dart
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // Importado para HapticFeedback
-import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import 'package:venceya/core/theme.dart';
 import 'package:venceya/models/reminder.dart';
 import 'package:venceya/services/auth_service.dart';
 import 'package:venceya/services/firestore_service.dart';
 import 'package:venceya/services/local_notification_service.dart';
-import 'package:venceya/core/theme.dart';
 
-// --- DEFINICIÓN DEL WIDGET ---
-// AddEditReminderScreen es un "Widget Dinámico" (StatefulWidget) porque su contenido
-// debe cambiar según la interacción del usuario y los datos cargados.
 class AddEditReminderScreen extends StatefulWidget {
-  // Recibe el ID del recordatorio. Si es nulo, estamos en modo "Añadir".
   final String? reminderId;
-
   const AddEditReminderScreen({super.key, this.reminderId});
 
-  // Una propiedad computada para verificar fácilmente si estamos en modo edición.
   bool get isEditMode => reminderId != null;
 
   @override
   State<AddEditReminderScreen> createState() => _AddEditReminderScreenState();
 }
 
-// --- CLASE DE ESTADO DEL WIDGET ---
 class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
-  // --- VARIABLES DE ESTADO ---
-  final _formKey =
-      GlobalKey<FormState>(); // Clave para controlar y validar el formulario.
-  final _titleController =
-      TextEditingController(); // Controlador para el campo de texto del título.
-  // --- NUEVO CONTROLLER ---
-  final _descriptionController =
-      TextEditingController(); // Controlador para la descripción.
+  final _formKey = GlobalKey<FormState>();
+  final _titleController = TextEditingController();
+  final _descriptionController = TextEditingController();
 
-  // Variables para almacenar los datos del formulario.
   DateTime? _selectedDate;
   ReminderCategory _selectedCategory = ReminderCategory.other;
-  bool _isNotificationEnabled = true;
+  bool _isNotificationEnabled = false;
 
-  // Variables para controlar el estado de la UI.
   bool _isLoading = false;
   String? _errorMessage;
-  Reminder?
-      _initialReminderData; // Guarda los datos originales en modo edición.
+  Reminder? _initialReminderData;
 
-  // --- CICLO DE VIDA ---
   @override
   void initState() {
     super.initState();
-    // Si el widget está en modo edición, llamamos a la función para cargar los datos existentes.
     if (widget.isEditMode) {
       _loadReminderData();
     }
@@ -60,197 +42,250 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
 
   @override
   void dispose() {
-    // Es CRUCIAL limpiar los controladores para liberar memoria.
     _titleController.dispose();
-    _descriptionController.dispose(); // Limpiamos el nuevo controller.
+    _descriptionController.dispose();
     super.dispose();
   }
 
-  // --- LÓGICA DE DATOS ---
-
-  /// Carga los datos de un recordatorio existente desde Firestore.
   Future<void> _loadReminderData() async {
     setState(() => _isLoading = true);
     try {
       final reminder = await context
           .read<FirestoreService>()
           .getReminderById(widget.reminderId!);
-
-      if (mounted) {
+      if (mounted && reminder != null) {
         setState(() {
-          if (reminder != null) {
-            _initialReminderData = reminder;
-            _titleController.text = reminder.title;
-            _descriptionController.text =
-                reminder.description ?? ''; // Cargamos la descripción.
-            _selectedDate = reminder.dueDate;
-            _selectedCategory = reminder.category;
-            _isNotificationEnabled = reminder.isNotificationEnabled;
-          } else {
-            _errorMessage = "Recordatorio no encontrado.";
-          }
+          _initialReminderData = reminder;
+          _titleController.text = reminder.title;
+          _descriptionController.text = reminder.description ?? '';
+          _selectedDate = reminder.dueDate;
+          _selectedCategory = reminder.category;
+          _isNotificationEnabled = reminder.isNotificationEnabled;
         });
       }
     } catch (e) {
       if (mounted) {
-        setState(() => _errorMessage = "Error al cargar: ${e.toString()}");
+        setState(() => _errorMessage = "Error al cargar los datos.");
       }
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  /// Guarda un nuevo recordatorio o actualiza uno existente.
+  Future<void> _pickDate() async {
+    final DateTime? pickedDate = await showDatePicker(
+        context: context,
+        initialDate: _selectedDate ?? DateTime.now(),
+        firstDate: DateTime.now(),
+        lastDate: DateTime.now().add(const Duration(days: 365 * 10)));
+    if (pickedDate == null || !mounted) return;
+    final TimeOfDay? pickedTime = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay.fromDateTime(_selectedDate ?? DateTime.now()));
+    if (pickedTime == null) return;
+    final selectedDateTime = DateTime(pickedDate.year, pickedDate.month,
+        pickedDate.day, pickedTime.hour, pickedTime.minute);
+    if (selectedDateTime.isBefore(DateTime.now())) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content:
+                const Text('No puedes seleccionar una fecha u hora pasada.'),
+            backgroundColor: Theme.of(context).colorScheme.error));
+      }
+      return;
+    }
+    setState(() => _selectedDate = selectedDateTime);
+  }
+
   Future<void> _saveReminder() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
-
+    if (!(_formKey.currentState?.validate() ?? false)) return;
     if (_selectedDate == null) {
-      setState(() => _errorMessage = "Por favor, seleccione una fecha.");
+      setState(() => _errorMessage = "Por favor, selecciona una fecha.");
       return;
     }
-
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
-    final navigator = GoRouter.of(context);
-
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
     try {
-      final authService = context.read<AuthService>();
       final firestoreService = context.read<FirestoreService>();
-      final localNotificationService = context.read<LocalNotificationService>();
-      final currentUser = authService.getCurrentUser();
+      final notificationService = context.read<LocalNotificationService>();
+      final currentUser = context.read<AuthService>().currentUser!;
 
-      if (currentUser == null) {
-        throw Exception("Usuario no autenticado.");
-      }
-
-      // Crea el objeto Reminder con los datos del formulario.
-      final reminder = Reminder(
-        id: widget.isEditMode ? _initialReminderData!.id : null,
+      final reminderToSave = Reminder(
+        id: _initialReminderData?.id,
         userId: currentUser.uid,
         title: _titleController.text.trim(),
-        description:
-            _descriptionController.text.trim(), // Guardamos la descripción.
+        description: _descriptionController.text.trim(),
         dueDate: _selectedDate!,
         category: _selectedCategory,
         isNotificationEnabled: _isNotificationEnabled,
-        createdAt: widget.isEditMode
-            ? _initialReminderData!.createdAt
-            : DateTime.now(),
-        updatedAt: DateTime.now(),
+        createdAt: _initialReminderData?.createdAt,
       );
 
-      final String reminderId;
+      String reminderId;
       if (widget.isEditMode) {
-        await firestoreService.updateReminder(reminder);
-        reminderId = reminder.id!;
+        await firestoreService.updateReminder(reminderToSave);
+        reminderId = reminderToSave.id!;
       } else {
-        final docRef = await firestoreService.addReminder(reminder);
+        final docRef = await firestoreService.addReminder(reminderToSave);
         reminderId = docRef.id;
       }
 
-      final notificationId = reminderId.hashCode & 0x7FFFFFFF;
-      if (reminder.isNotificationEnabled &&
-          reminder.dueDate.isAfter(DateTime.now())) {
-        await localNotificationService.scheduleNotification(
-          id: notificationId,
-          title: reminder.title,
+      if (_isNotificationEnabled &&
+          reminderToSave.dueDate.isAfter(DateTime.now())) {
+        await notificationService.scheduleNotification(
+          id: reminderId.hashCode,
+          title: reminderToSave.title,
           body:
-              'Vence hoy: ${DateFormat.yMMMd('es').add_jm().format(reminder.dueDate)}',
-          scheduledDate: reminder.dueDate,
+              'Vence: ${DateFormat.yMMMEd('es').add_jm().format(reminderToSave.dueDate)}',
           payload: reminderId,
+          scheduledDate: reminderToSave.dueDate,
         );
       } else {
-        await localNotificationService.cancelNotification(notificationId);
+        await notificationService.cancelNotification(reminderId.hashCode);
       }
 
-      scaffoldMessenger.showSnackBar(
-        SnackBar(
-          content: Text(widget.isEditMode
-              ? 'Recordatorio actualizado con éxito!'
-              : 'Recordatorio añadido con éxito!'),
-          backgroundColor: AppTheme.categoryGreen,
-        ),
-      );
-      await Future.delayed(const Duration(milliseconds: 300));
-      navigator.go('/dashboard');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(widget.isEditMode
+                ? 'Recordatorio actualizado'
+                : 'Recordatorio añadido'),
+            backgroundColor: AppTheme.categoryGreen));
+        // Al terminar, navegamos explícitamente al Dashboard.
+        context.go('/dashboard');
+      }
     } catch (e) {
       if (mounted) {
-        setState(() => _errorMessage = "Error al guardar: ${e.toString()}");
+        setState(() => _errorMessage = "Error al guardar. Inténtalo de nuevo.");
       }
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  // --- MÉTODOS AYUDANTES PARA LA UI ---
-
-  /// Muestra el selector de fecha y hora, y valida que no sea una hora pasada.
-  Future<void> _pickDate() async {
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
-
-    final DateTime? pickedDate = await showDatePicker(
-      context: context,
-      initialDate:
-          _selectedDate ?? DateTime.now().add(const Duration(hours: 1)),
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: Theme.of(context).colorScheme.copyWith(
-                  onSurface: AppTheme.textMedium,
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+            widget.isEditMode ? 'Editar Recordatorio' : 'Añadir Recordatorio'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          // Se cambia `pop` por una navegación explícita a `/dashboard`.
+          // Esto asegura que, sin importar de dónde vengas, la flecha
+          // siempre te devolverá a la pantalla principal.
+          onPressed: () => context.go('/dashboard'),
+        ),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24.0),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              TextFormField(
+                controller: _titleController,
+                decoration: const InputDecoration(labelText: 'Título'),
+                validator: (v) {
+                  if (v?.trim().isEmpty ?? true) {
+                    return 'Introduce un título.';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 20),
+              TextFormField(
+                controller: _descriptionController,
+                decoration:
+                    const InputDecoration(labelText: 'Descripción (Opcional)'),
+                maxLines: 3,
+                textCapitalization: TextCapitalization.sentences,
+              ),
+              const SizedBox(height: 20),
+              _buildDatePicker(),
+              const SizedBox(height: 20),
+              _buildCategoryPicker(),
+              const SizedBox(height: 10),
+              SwitchListTile(
+                title: const Text('Activar Notificación'),
+                value: _isNotificationEnabled,
+                onChanged: (bool value) async {
+                  if (value) {
+                    final bool permissionsGranted = await context
+                        .read<LocalNotificationService>()
+                        .requestPermissions();
+                    if (permissionsGranted && mounted) {
+                      setState(() => _isNotificationEnabled = true);
+                    }
+                  } else {
+                    setState(() => _isNotificationEnabled = false);
+                  }
+                },
+                contentPadding: EdgeInsets.zero,
+                activeColor: AppTheme.accentBlue,
+              ),
+              const SizedBox(height: 32),
+              if (_errorMessage != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16.0),
+                  child: Text(_errorMessage!,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                          fontSize: 16)),
                 ),
+              ElevatedButton(
+                onPressed: _isLoading ? null : _saveReminder,
+                child: Text(widget.isEditMode ? 'Actualizar' : 'Guardar'),
+              ),
+            ],
           ),
-          child: child!,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDatePicker() {
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      title: const Text('Fecha y Hora'),
+      subtitle: Text(
+        _selectedDate == null
+            ? 'Seleccionar...'
+            : DateFormat.yMMMMEEEEd('es').add_jm().format(_selectedDate!),
+        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              color: _selectedDate == null
+                  ? AppTheme.textMedium
+                  : AppTheme.primaryBlue,
+              fontWeight: FontWeight.bold,
+            ),
+      ),
+      trailing: const Icon(Icons.calendar_today, color: AppTheme.primaryBlue),
+      onTap: _pickDate,
+    );
+  }
+
+  Widget _buildCategoryPicker() {
+    return DropdownButtonFormField<ReminderCategory>(
+      value: _selectedCategory,
+      decoration: const InputDecoration(labelText: 'Categoría'),
+      items: ReminderCategory.values.map((category) {
+        return DropdownMenuItem(
+          value: category,
+          child: Text(_getCategoryText(category)),
         );
+      }).toList(),
+      onChanged: (newValue) {
+        if (newValue != null) {
+          setState(() => _selectedCategory = newValue);
+        }
       },
     );
-
-    if (pickedDate == null) return;
-    if (!mounted) return;
-
-    final TimeOfDay? pickedTime = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.fromDateTime(
-          _selectedDate ?? DateTime.now().add(const Duration(hours: 1))),
-    );
-    if (pickedTime == null) return;
-
-    final selectedDateTime = DateTime(
-      pickedDate.year,
-      pickedDate.month,
-      pickedDate.day,
-      pickedTime.hour,
-      pickedTime.minute,
-    );
-
-    if (selectedDateTime.isBefore(DateTime.now())) {
-      scaffoldMessenger.showSnackBar(
-        const SnackBar(
-          content: Text('No puedes seleccionar una fecha u hora pasada.'),
-          backgroundColor: AppTheme.categoryRed,
-        ),
-      );
-      return;
-    }
-
-    setState(() {
-      HapticFeedback.lightImpact(); // Añade una vibración sutil.
-      _selectedDate = selectedDateTime;
-    });
   }
 
-  /// Convierte el enum de Categoría a texto legible en español.
   String _getCategoryText(ReminderCategory category) {
     switch (category) {
       case ReminderCategory.payments:
@@ -264,136 +299,5 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
       case ReminderCategory.other:
         return 'Otro';
     }
-  }
-
-  // --- CONSTRUCCIÓN DE LA UI ---
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-            widget.isEditMode ? 'Editar Recordatorio' : 'Añadir Recordatorio'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/dashboard'),
-        ),
-      ),
-      body: _isLoading && _initialReminderData == null
-          ? const Center(child: CircularProgressIndicator())
-          : Stack(
-              children: [
-                SingleChildScrollView(
-                  padding: const EdgeInsets.all(24.0),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: <Widget>[
-                        TextFormField(
-                          controller: _titleController,
-                          decoration: const InputDecoration(
-                            labelText: 'Título del Recordatorio',
-                            hintText: 'Ej. Pagar alquiler',
-                          ),
-                          validator: (value) {
-                            if (value == null || value.trim().isEmpty) {
-                              return 'Por favor, introduce un título';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 20),
-                        // --- CAMPO DE DESCRIPCIÓN AÑADIDO ---
-                        TextFormField(
-                          controller: _descriptionController,
-                          decoration: const InputDecoration(
-                            labelText: 'Descripción (Opcional)',
-                            hintText: 'Añade detalles adicionales aquí...',
-                          ),
-                          maxLines: 3, // Permite que el campo sea multilínea.
-                          textCapitalization: TextCapitalization.sentences,
-                        ),
-                        const SizedBox(height: 20),
-                        ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          title: Text('Fecha y Hora de Vencimiento',
-                              style: Theme.of(context).textTheme.titleMedium),
-                          subtitle: Text(
-                            _selectedDate == null
-                                ? 'Seleccionar...'
-                                : DateFormat.yMMMd('es')
-                                    .add_jm()
-                                    .format(_selectedDate!),
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleLarge
-                                ?.copyWith(
-                                    color: _selectedDate == null
-                                        ? AppTheme.textMedium
-                                        : AppTheme.primaryBlue,
-                                    fontWeight: FontWeight.bold),
-                          ),
-                          trailing: const Icon(Icons.calendar_today,
-                              color: AppTheme.primaryBlue),
-                          onTap: _pickDate,
-                        ),
-                        const SizedBox(height: 20),
-                        DropdownButtonFormField<ReminderCategory>(
-                          value: _selectedCategory,
-                          decoration:
-                              const InputDecoration(labelText: 'Categoría'),
-                          items: ReminderCategory.values.map((category) {
-                            return DropdownMenuItem(
-                              value: category,
-                              child: Text(_getCategoryText(category)),
-                            );
-                          }).toList(),
-                          onChanged: (newValue) {
-                            if (newValue != null) {
-                              setState(() => _selectedCategory = newValue);
-                            }
-                          },
-                        ),
-                        const SizedBox(height: 20),
-                        SwitchListTile(
-                          title: Text('Activar Notificación',
-                              style: Theme.of(context).textTheme.titleMedium),
-                          value: _isNotificationEnabled,
-                          onChanged: (value) {
-                            setState(() => _isNotificationEnabled = value);
-                          },
-                        ),
-                        const SizedBox(height: 32),
-                        ElevatedButton(
-                          onPressed: _isLoading ? null : _saveReminder,
-                          style: ElevatedButton.styleFrom(
-                              minimumSize: const Size(double.infinity, 50)),
-                          child: _isLoading
-                              ? const CircularProgressIndicator(
-                                  color: Colors.white)
-                              : Text(
-                                  widget.isEditMode ? 'Actualizar' : 'Guardar'),
-                        ),
-                        if (_errorMessage != null)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 16.0),
-                            child: Text(
-                              _errorMessage!,
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                  color: AppTheme.categoryRed, fontSize: 16),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
-                if (_isLoading) ...[
-                  const ModalBarrier(dismissible: false, color: Colors.black54),
-                  const Center(child: CircularProgressIndicator()),
-                ],
-              ],
-            ),
-    );
   }
 }

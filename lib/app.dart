@@ -1,58 +1,55 @@
 // lib/app.dart
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
-// Importaciones
-import 'package:flutter/material.dart'; // El paquete base para construir la UI con Material Design.
-import 'package:provider/provider.dart'; // Para acceder a nuestros servicios.
-import 'package:flutter_localizations/flutter_localizations.dart'; // Para configurar el idioma de la app.
+// Importaciones del proyecto.
+import 'package:venceya/services/auth_service.dart';
+import 'package:venceya/app_router.dart';
+import 'package:venceya/core/theme.dart';
 
-// Importaciones de nuestros archivos locales.
-import 'package:venceya/services/auth_service.dart'; // Nuestro servicio de autenticación.
-import 'package:venceya/app_router.dart'; // Nuestro archivo de configuración de rutas.
-import 'package:venceya/core/theme.dart'; // Nuestro tema personalizado.
-
-// --- DEFINICIÓN DEL WIDGET RAÍZ DE LA APLICACIÓN ---
-// VenceYaApp es el widget principal, el punto de partida de toda la aplicación.
-// Es un "Widget Estático" (StatelessWidget) porque su única función es configurar
-// la aplicación (título, tema, rutas, idioma). No maneja ningún estado que cambie por sí mismo.
+/// VenceYaApp es el widget raíz de la aplicación.
+///
+/// Es `StatelessWidget` porque su configuración (tema, rutas, etc.)
+/// no cambia durante el tiempo de vida de la app.
 class VenceYaApp extends StatelessWidget {
   const VenceYaApp({super.key});
 
-  // El método 'build' es el corazón de todo widget. Describe cómo se debe
-  // construir la interfaz de usuario. Se ejecuta muy pocas veces en este widget raíz.
   @override
   Widget build(BuildContext context) {
-    // Obtenemos una instancia de nuestro AuthService usando Provider.
+    // Se obtiene el servicio de autenticación para pasarlo al router.
+    // `listen: false` es una optimización, ya que este widget no necesita
+    // redibujarse si `AuthService` notifica cambios.
     final authService = Provider.of<AuthService>(context, listen: false);
 
-    // Creamos una instancia de nuestro manejador de rutas, pasándole el servicio de autenticación.
+    // Se instancia el router, que necesita saber sobre el estado de auth
+    // para decidir a qué pantalla redirigir al usuario.
     final appRouter = AppRouter(authService);
 
-    // MaterialApp.router es el widget base para toda la aplicación cuando se usa GoRouter.
+    // MaterialApp.router es el widget principal que configura la app
+    // para usar un sistema de navegación declarativo como GoRouter.
     return MaterialApp.router(
-      // --- CONFIGURACIÓN GENERAL DE LA APP ---
-      title:
-          'VenceYa', 
+      // --- Configuración General ---
+      title: 'VenceYa',
       theme: AppTheme.lightTheme,
       debugShowCheckedModeBanner: false,
-      // --- CONFIGURACIÓN DE RUTAS (NAVEGACIÓN) ---
-      // Aquí conectamos nuestro sistema de navegación (GoRouter) a la aplicación.
-      
+
+      // --- Configuración de Navegación ---
+      // Conecta GoRouter a la aplicación para manejar todas las rutas.
       routerConfig: appRouter.router,
 
-      // --- CONFIGURACIÓN DE IDIOMA (LOCALIZACIÓN) ---
+      // --- Configuración de Idioma (Localización) ---
+      // Provee las traducciones para los widgets estándar de Flutter.
       localizationsDelegates: const [
-        // Traduce los textos de los widgets de Material (
         GlobalMaterialLocalizations.delegate,
-        // Traduce la dirección del texto (de izquierda a derecha para el español).
         GlobalWidgetsLocalizations.delegate,
-        // Traduce los textos de los widgets de estilo iOS (Cupertino).
         GlobalCupertinoLocalizations.delegate,
       ],
-      // 'supportedLocales' le dice a la app qué idiomas soporta.
-      // Esto es importante para que DateFormat y otros paquetes funcionen correctamente.
+      // Define los idiomas que la app soporta.
+      // 'es' es suficiente para cubrir variantes como 'es_AR' o 'es_ES'
+      // para los textos de los widgets por defecto. El formato específico de
+      // fechas se controla con `initializeDateFormatting` en main.dart.
       supportedLocales: const [
-        Locale('es', 'AR'), 
-        Locale('es', 'ES'),
         Locale('es'),
       ],
     );

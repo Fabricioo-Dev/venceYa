@@ -2,12 +2,15 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:venceya/services/auth_service.dart';
 import 'package:venceya/core/theme.dart';
+import 'package:venceya/services/auth_service.dart';
 
-/// Pantalla de bienvenida que se muestra al iniciar la aplicación.
-/// Su principal función es decidir a qué pantalla redirigir al usuario
-/// basándose en su estado de autenticación.
+/// Bloque Principal: `SplashScreen Widget`.
+///
+/// Es la pantalla de bienvenida que se muestra al iniciar la aplicación.
+/// Ahora es un `StatefulWidget` porque necesita gestionar una lógica interna
+/// que depende del tiempo (esperar unos segundos) y del estado de
+/// autenticación para decidir a qué pantalla navegar.
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -15,56 +18,66 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
+/// Bloque de Estado: `_SplashScreenState`.
+///
+/// Contiene la lógica para iniciar la navegación después de un breve retraso.
 class _SplashScreenState extends State<SplashScreen> {
-  /// El método `initState` se ejecuta una sola vez cuando el widget se crea.
-  /// Es el lugar ideal para iniciar procesos que solo deben correr una vez.
+  /// Bloque de Ciclo de Vida: `initState`.
+  ///
+  /// Se ejecuta una sola vez cuando la pantalla se crea. Es el lugar ideal
+  /// para iniciar procesos que solo deben correr una vez, como nuestro
+  /// temporizador de navegación.
   @override
   void initState() {
     super.initState();
-    // Inicia el proceso de verificación y navegación.
     _checkAuthAndNavigate();
   }
 
-  /// Verifica si el usuario ya ha iniciado sesión y navega a la pantalla correcta.
+  /// Bloque de Lógica de Navegación: `_checkAuthAndNavigate`.
+  ///
+  /// Esta función es el corazón de la pantalla. Espera 2 segundos para que
+  /// el logo sea visible y luego, basándose en el estado de autenticación,
+  /// redirige al usuario a la pantalla correcta.
   Future<void> _checkAuthAndNavigate() async {
-    // Usamos `Future.delayed` para que la pantalla de bienvenida sea visible
-    // por un tiempo determinado
-    await Future.delayed(const Duration(seconds: 3));
+    // Esperamos 2 segundos para que la pantalla de bienvenida sea visible.
+    await Future.delayed(const Duration(seconds: 2));
 
+    // `if (!mounted)` es una comprobación de seguridad crucial. Si el usuario
+    // cierra la app durante esos 2 segundos, el widget ya no estará "montado"
+    // y no debemos intentar usar su `context` para navegar, ya que causaría un error.
     if (!mounted) return;
 
-    // Usamos Provider para obtener acceso al AuthService de forma segura.
-    final authService = Provider.of<AuthService>(context, listen: false);
+    // Usamos `context.read` para obtener el servicio de autenticación.
+    final authService = context.read<AuthService>();
 
-    // Comprueba si hay un usuario logueado.
-    if (authService.getCurrentUser() != null) {
-      // Si hay un usuario, lo redirige al dashboard principal.
+    // Decidimos a dónde ir. `go` reemplaza la pila de navegación, lo cual
+    // es correcto aquí para que el usuario no pueda "volver atrás" al splash.
+    if (authService.currentUser != null) {
+      // Si hay un usuario, vamos al dashboard.
       context.go('/dashboard');
     } else {
-      // Si no hay usuario, lo redirige a la pantalla de login.
+      // Si no hay usuario, vamos al login.
       context.go('/login');
     }
   }
 
-  /// Construye la interfaz de usuario de la pantalla de bienvenida.
+  /// Bloque de Construcción de UI: `build`.
+  ///
+  /// Dibuja la interfaz visual de la pantalla. Es una estructura simple
+  /// que centra los elementos en la pantalla.
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor:
-          AppTheme.primaryBlue, // Fondo con el color principal de la app.
+      backgroundColor: AppTheme.primaryBlue,
       body: Center(
         child: Column(
-          mainAxisAlignment:
-              MainAxisAlignment.center, // Centra los elementos verticalmente.
+          mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            // Muestra el logo de la aplicación desde la carpeta de assets.
             Image.asset(
               'assets/venceya_logo.png',
               width: 380,
             ),
-            const SizedBox(height: 18),
-
-            // Muestra un indicador de carga circular para dar feedback de que algo está pasando.
+            const SizedBox(height: 24),
             const CircularProgressIndicator(
               valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
               strokeWidth: 3,

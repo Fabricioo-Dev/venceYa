@@ -1,14 +1,18 @@
 // lib/ui/screens/signup_screen.dart
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:venceya/models/user_data.dart';
 import 'package:venceya/services/auth_service.dart';
 import 'package:venceya/services/firestore_service.dart';
-import 'package:venceya/models/user_data.dart';
-import 'package:venceya/core/theme.dart';
 
-/// Pantalla para el registro de nuevos usuarios.
+/// Bloque Principal: `SignUpScreen Widget`.
+///
+/// Es la pantalla para el registro de nuevos usuarios. Se define como `StatefulWidget`
+/// porque debe gestionar un estado complejo: los valores de múltiples campos de
+/// texto, las validaciones del formulario, la visibilidad de las contraseñas y el
+/// estado de carga (`_isLoading`) durante el proceso de registro.
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
 
@@ -16,23 +20,32 @@ class SignUpScreen extends StatefulWidget {
   State<SignUpScreen> createState() => _SignUpScreenState();
 }
 
+/// Bloque de Estado: `_SignUpScreenState`.
+///
+/// Esta clase contiene toda la lógica y las variables que pueden cambiar mientras el
+/// usuario interactúa con la pantalla de registro.
 class _SignUpScreenState extends State<SignUpScreen> {
-  // Clave para manejar el estado y la validación del formulario.
+  // Clave global para identificar y gestionar el estado del Form.
   final _formKey = GlobalKey<FormState>();
-  // Controladores para obtener el texto de los campos del formulario.
+  // Controladores para cada campo de texto. Nos permiten leer y manipular su contenido.
   final _firstNameController = TextEditingController();
   final _lastNameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
-  // Variables para controlar el estado de la UI.
+  // Variables de estado que controlan la apariencia y el comportamiento de la UI.
   bool _isLoading = false;
   String? _errorMessage;
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
 
-  /// Libera los recursos de los controladores para evitar fugas de memoria.
+  /// Bloque de Ciclo de Vida: `dispose`.
+  ///
+  /// Este método es fundamental. Se llama automáticamente cuando la pantalla
+  /// se destruye. Aquí debemos limpiar (hacer `dispose`) de todos los
+  /// controladores para liberar los recursos que ocupan en memoria y
+  /// prevenir errores conocidos como "memory leaks".
   @override
   void dispose() {
     _firstNameController.dispose();
@@ -43,14 +56,17 @@ class _SignUpScreenState extends State<SignUpScreen> {
     super.dispose();
   }
 
-  /// Valida el formulario e inicia el proceso de registro de usuario.
+  /// Bloque de Lógica Principal: `_signUp`.
+  ///
+  /// Orquesta todo el proceso de registro, desde la validación del formulario
+  /// hasta la creación del usuario en Firebase y Firestore.
   Future<void> _signUp() async {
-    // Si el formulario no es válido, detiene la ejecución.
-    if (!_formKey.currentState!.validate()) {
+    // 1. Validar el formulario. Si `validate()` devuelve `false`, la función se detiene.
+    if (!(_formKey.currentState?.validate() ?? false)) {
       return;
     }
 
-    // Activa el estado de carga y limpia errores previos.
+    // 2. Iniciar el estado de carga y limpiar errores previos.
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -60,20 +76,18 @@ class _SignUpScreenState extends State<SignUpScreen> {
       final authService = context.read<AuthService>();
       final firestoreService = context.read<FirestoreService>();
 
-      // Crea el usuario en Firebase Auth. Esto también inicia la sesión.
+      // 3. Crear el usuario en Firebase Authentication.
       final userCredential = await authService.signUpWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
 
-      // Valida que la creación del usuario fue exitosa.
-      if (userCredential.user == null) {
-        throw Exception('Error al obtener datos del nuevo usuario.');
+      final user = userCredential.user;
+      if (user == null) {
+        throw Exception('No se pudo obtener el usuario recién creado.');
       }
 
-      final user = userCredential.user!;
-
-      // Guarda los datos adicionales del usuario en la base de datos Firestore.
+      // 4. Crear el documento del usuario en Firestore con sus datos adicionales.
       await firestoreService.setUserData(
         UserData(
           uid: user.uid,
@@ -85,46 +99,64 @@ class _SignUpScreenState extends State<SignUpScreen> {
         ),
       );
 
-      // NO HACEMOS NADA MÁS.
-      // Al tener éxito, el router se encargará automáticamente de la redirección.
-    } on FirebaseAuthException catch (e) {
-      // Maneja errores específicos de Firebase Auth.
-      String message;
-      if (e.code == 'email-already-in-use') {
-        message = 'El correo electrónico ya está en uso.';
-      } else if (e.code == 'weak-password') {
-        message = 'La contraseña es demasiado débil.';
-      } else {
-        message = e.message ?? 'Error desconocido al registrar.';
+      // 5. Navegar de vuelta al Login después de un registro exitoso.
+      // Posible pregunta: ¿Por qué no navegas directo al Dashboard?
+      // Respuesta: "Por seguridad y para confirmar el flujo, después del registro
+      // redirigimos al usuario al login para que inicie sesión con sus nuevas
+      // credenciales. Esto confirma que todo el proceso funcionó correctamente."
+      if (mounted) {
+        context.go('/login');
       }
+    } on FirebaseAuthException catch (e) {
+      // 6. Manejo de errores específicos de Firebase para dar feedback claro.
       setState(() {
-        _errorMessage = "Error al registrar: $message";
+        _errorMessage = _getFirebaseAuthErrorMessage(e);
       });
     } catch (e) {
-      // Maneja cualquier otro error.
+      // 7. Manejo de cualquier otro error inesperado.
       setState(() {
-        _errorMessage = "Error al registrar: ${e.toString()}";
+        _errorMessage = "Ocurrió un error inesperado. Inténtalo de nuevo.";
       });
     } finally {
-      // Se asegura de desactivar el indicador de carga al finalizar.
+      // 8. Asegurarse de que el indicador de carga se oculte, incluso si hubo un error.
       if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
+        setState(() => _isLoading = false);
       }
     }
   }
 
-  /// Construye la interfaz de usuario de la pantalla.
+  /// Bloque de Lógica Helper: `_getFirebaseAuthErrorMessage`.
+  ///
+  /// Una función de ayuda que traduce los códigos de error técnicos de Firebase
+  /// a mensajes legibles para el usuario. Esto mantiene la lógica de `_signUp` más limpia.
+  String _getFirebaseAuthErrorMessage(FirebaseAuthException e) {
+    switch (e.code) {
+      case 'email-already-in-use':
+        return 'El correo electrónico ya está registrado.';
+      case 'weak-password':
+        return 'La contraseña es demasiado débil (mínimo 6 caracteres).';
+      case 'invalid-email':
+        return 'El formato del correo electrónico no es válido.';
+      default:
+        return 'Ocurrió un error durante el registro.';
+    }
+  }
+
+  /// Bloque de Construcción de UI: `build`.
+  ///
+  /// Dibuja la pantalla completa. Es declarativo, mostrando qué widgets deben
+  /// aparecer basados en el estado actual (`_isLoading`, `_errorMessage`, etc.).
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Crear Cuenta'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/login'),
-        ),
+        // Posible pregunta: ¿Cómo funciona la flecha para volver atrás?
+        // Respuesta: "No necesitamos un botón `leading` personalizado. Como
+        // navegamos a esta pantalla desde el Login (`context.go('/signup')`),
+        // GoRouter la pone "encima" en la pila de navegación. El `AppBar` de
+        // Flutter detecta esto automáticamente y añade el botón de 'atrás'
+        // que ejecuta `context.pop()` por nosotros."
       ),
       body: Center(
         child: SingleChildScrollView(
@@ -135,24 +167,21 @@ class _SignUpScreenState extends State<SignUpScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
                 Text(
-                  'Regístrate para empezar a organizar tus vencimientos',
+                  'Completa tus datos para registrarte',
                   textAlign: TextAlign.center,
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleMedium!
-                      .copyWith(color: AppTheme.textMedium),
+                  style: Theme.of(context).textTheme.titleLarge,
                 ),
                 const SizedBox(height: 32),
+
+                // --- Campos del Formulario ---
                 TextFormField(
                   controller: _firstNameController,
-                  keyboardType: TextInputType.text,
                   decoration: const InputDecoration(
-                    labelText: 'Nombre',
-                    prefixIcon: Icon(Icons.person_outline),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Por favor, ingresa tu nombre';
+                      labelText: 'Nombre',
+                      prefixIcon: Icon(Icons.person_outline)),
+                  validator: (val) {
+                    if (val?.trim().isEmpty ?? true) {
+                      return 'Ingresa tu nombre.';
                     }
                     return null;
                   },
@@ -160,14 +189,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _lastNameController,
-                  keyboardType: TextInputType.text,
                   decoration: const InputDecoration(
-                    labelText: 'Apellido',
-                    prefixIcon: Icon(Icons.person_outline),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Por favor, ingresa tu apellido';
+                      labelText: 'Apellido',
+                      prefixIcon: Icon(Icons.person_outline)),
+                  validator: (val) {
+                    if (val?.trim().isEmpty ?? true) {
+                      return 'Ingresa tu apellido.';
                     }
                     return null;
                   },
@@ -177,15 +204,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
                   decoration: const InputDecoration(
-                    labelText: 'Correo Electrónico',
-                    prefixIcon: Icon(Icons.email_outlined),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Por favor, ingresa tu correo electrónico';
+                      labelText: 'Correo Electrónico',
+                      prefixIcon: Icon(Icons.email_outlined)),
+                  validator: (val) {
+                    if (val?.trim().isEmpty ?? true) {
+                      return 'Ingresa tu correo.';
                     }
-                    if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
-                      return 'Ingresa un correo electrónico válido';
+                    if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(val!)) {
+                      return 'Ingresa un correo válido.';
                     }
                     return null;
                   },
@@ -198,24 +224,19 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     labelText: 'Contraseña',
                     prefixIcon: const Icon(Icons.lock_outline),
                     suffixIcon: IconButton(
-                      icon: Icon(
-                        _isPasswordVisible
-                            ? Icons.visibility
-                            : Icons.visibility_off,
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          _isPasswordVisible = !_isPasswordVisible;
-                        });
-                      },
+                      icon: Icon(_isPasswordVisible
+                          ? Icons.visibility
+                          : Icons.visibility_off),
+                      onPressed: () => setState(
+                          () => _isPasswordVisible = !_isPasswordVisible),
                     ),
                   ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Por favor, ingresa tu contraseña';
+                  validator: (val) {
+                    if (val?.isEmpty ?? true) {
+                      return 'Ingresa tu contraseña.';
                     }
-                    if (value.length < 6) {
-                      return 'La contraseña debe tener al menos 6 caracteres';
+                    if (val!.length < 6) {
+                      return 'Mínimo 6 caracteres.';
                     }
                     return null;
                   },
@@ -228,37 +249,32 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     labelText: 'Confirmar Contraseña',
                     prefixIcon: const Icon(Icons.lock_outline),
                     suffixIcon: IconButton(
-                      icon: Icon(
-                        _isConfirmPasswordVisible
-                            ? Icons.visibility
-                            : Icons.visibility_off,
-                      ),
-                      onPressed: () {
-                        setState(() {
+                      icon: Icon(_isConfirmPasswordVisible
+                          ? Icons.visibility
+                          : Icons.visibility_off),
+                      onPressed: () => setState(() =>
                           _isConfirmPasswordVisible =
-                              !_isConfirmPasswordVisible;
-                        });
-                      },
+                              !_isConfirmPasswordVisible),
                     ),
                   ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Por favor, confirma tu contraseña';
-                    }
-                    if (value != _passwordController.text) {
-                      return 'Las contraseñas no coinciden';
+                  validator: (val) {
+                    if (val != _passwordController.text) {
+                      return 'Las contraseñas no coinciden.';
                     }
                     return null;
                   },
                 ),
                 const SizedBox(height: 24),
+
+                // --- Feedback al Usuario ---
                 if (_errorMessage != null)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 16.0),
                     child: Text(
                       _errorMessage!,
-                      style: const TextStyle(
-                          color: AppTheme.categoryRed, fontSize: 14),
+                      style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                          fontSize: 14),
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -267,11 +283,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     ? const Center(child: CircularProgressIndicator())
                     : ElevatedButton(
                         onPressed: _signUp,
-                        style: ElevatedButton.styleFrom(
-                          minimumSize: const Size(double.infinity, 50),
-                        ),
-                        child: const Text('Registrarse',
-                            style: TextStyle(fontSize: 18)),
+                        child: const Text('Registrarse'),
                       ),
               ],
             ),

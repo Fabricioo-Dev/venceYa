@@ -5,7 +5,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 part 'reminder.freezed.dart';
 part 'reminder.g.dart';
 
-/// Convierte el Timestamp de Firestore a DateTime de Dart y viceversa.
+/// Convierte entre el `Timestamp` de Firestore y el `DateTime` de Dart.
+///
+/// Esta clase implementa `JsonConverter`, permitiendo que se aplique como una
+/// anotación a los campos de fecha para automatizar su conversión.
 class TimestampConverter implements JsonConverter<DateTime, Timestamp> {
   const TimestampConverter();
 
@@ -16,34 +19,50 @@ class TimestampConverter implements JsonConverter<DateTime, Timestamp> {
   Timestamp toJson(DateTime date) => Timestamp.fromDate(date);
 }
 
-/// Define las categorías posibles para un recordatorio.
-enum ReminderCategory { payments, services, documents, personal, other }
+/// Define las categorías disponibles para un recordatorio.
+/// Usar un `enum` asegura que solo se puedan usar valores válidos.
+enum ReminderCategory {
+  payments,
+  services,
+  documents,
+  personal,
+  other,
+}
 
-/// Define la estructura de datos inmutable para un recordatorio usando Freezed.
+/// Modelo de datos inmutable para un recordatorio.
 @freezed
 class Reminder with _$Reminder {
   const factory Reminder({
-    // ID del documento de Firestore (se asigna después de crearlo).
+    // ID del documento en Firestore. Es opcional (`?`) porque se asigna
+    // después de que el documento es creado en la base de datos.
     String? id,
+
     // ID del usuario al que pertenece el recordatorio.
     required String userId,
+
     // Título principal del recordatorio.
     required String title,
-    // Campo opcional para notas o detalles adicionales.
+
+    // Descripción o notas adicionales (opcional).
     String? description,
-    // Fecha y hora exactas del vencimiento.
+
+    // Fecha de vencimiento. Usa el conversor para manejar el tipo Timestamp.
     @TimestampConverter() required DateTime dueDate,
-    // Categoría del recordatorio, con "Otro" como valor por defecto.
+
+    // Categoría. `@Default` asigna `other` si no se provee un valor.
     @Default(ReminderCategory.other) ReminderCategory category,
-    // Controla si la notificación está habilitada, `true` por defecto.
+
+    // Controla si la notificación local está habilitada para este recordatorio.
     @Default(true) bool isNotificationEnabled,
-    // Fecha de creación del recordatorio.
+
+    // Fecha de creación (opcional, manejada por el servicio).
     @TimestampConverter() DateTime? createdAt,
-    // Fecha de la última actualización del recordatorio.
+
+    // Fecha de la última actualización (opcional, manejada por el servicio).
     @TimestampConverter() DateTime? updatedAt,
   }) = _Reminder;
 
-  /// Crea un objeto Reminder a partir de un mapa JSON (datos de Firestore).
+  /// Constructor factory para crear una instancia desde un mapa JSON (Firestore).
   factory Reminder.fromJson(Map<String, dynamic> json) =>
       _$ReminderFromJson(json);
 }
